@@ -1,0 +1,5 @@
+.env
+/vendor/
+users_backup.sql
+test-email.php
+pages/register_backup.php
