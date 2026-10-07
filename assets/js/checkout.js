@@ -271,22 +271,79 @@ function validateCardDetails() {
 
 
     /*
-     * Basic expiry validation
-     */
+ * Expiry date validation
+ */
 
-    if (
-        !/^\d{2}\/\d{2}$/.test(
-            expiryDate
-        )
-    ) {
+if (
+    !/^\d{2}\/\d{2}$/.test(
+        expiryDate
+    )
+) {
 
-        alert(
-            "Please enter the expiry date in MM/YY format."
-        );
+    alert(
+        "Please enter the expiry date in MM/YY format."
+    );
 
-        return false;
+    return false;
 
-    }
+}
+
+
+const expiryParts =
+    expiryDate.split("/");
+
+const expiryMonth =
+    parseInt(
+        expiryParts[0],
+        10
+    );
+
+const expiryYear =
+    parseInt(
+        "20" + expiryParts[1],
+        10
+    );
+
+
+if (
+    expiryMonth < 1 ||
+    expiryMonth > 12
+) {
+
+    alert(
+        "Please enter a valid expiry month."
+    );
+
+    return false;
+
+}
+
+
+const currentDate =
+    new Date();
+
+const currentMonth =
+    currentDate.getMonth() + 1;
+
+const currentYear =
+    currentDate.getFullYear();
+
+
+if (
+    expiryYear < currentYear ||
+    (
+        expiryYear === currentYear &&
+        expiryMonth < currentMonth
+    )
+) {
+
+    alert(
+        "This card has expired. Please enter a valid expiry date."
+    );
+
+    return false;
+
+}
 
 
     /*

@@ -1,6 +1,22 @@
 <?php
+
+require_once '../includes/auth.php';
+
+requireCustomer();
+
 include '../includes/header.php';
 include '../includes/navbar.php';
+
+$customerName = $_SESSION["user_name"] ?? "";
+$customerEmail = $_SESSION["user_email"] ?? "";
+
+$nameParts = preg_split('/\s+/', trim($customerName));
+
+$firstName = $nameParts[0] ?? "";
+$lastName = count($nameParts) > 1
+    ? implode(" ", array_slice($nameParts, 1))
+    : "";
+
 ?>
 
 <main>
@@ -69,12 +85,13 @@ include '../includes/navbar.php';
                                     </label>
 
                                     <input
-                                        type="text"
-                                        id="firstName"
-                                        name="firstName"
-                                        class="form-control"
-                                        required
-                                    >
+    type="text"
+    id="firstName"
+    name="firstName"
+    class="form-control"
+    value="<?php echo htmlspecialchars($firstName); ?>"
+    required
+>
 
                                 </div>
 
@@ -88,12 +105,13 @@ include '../includes/navbar.php';
                                     </label>
 
                                     <input
-                                        type="text"
-                                        id="lastName"
-                                        name="lastName"
-                                        class="form-control"
-                                        required
-                                    >
+    type="text"
+    id="lastName"
+    name="lastName"
+    class="form-control"
+    value="<?php echo htmlspecialchars($lastName); ?>"
+    required
+>
 
                                 </div>
 
@@ -109,12 +127,14 @@ include '../includes/navbar.php';
                                 </label>
 
                                 <input
-                                    type="email"
-                                    id="email"
-                                    name="email"
-                                    class="form-control"
-                                    required
-                                >
+    type="email"
+    id="email"
+    name="email"
+    class="form-control"
+    value="<?php echo htmlspecialchars($customerEmail); ?>"
+    readonly
+    required
+>
 
                             </div>
 
