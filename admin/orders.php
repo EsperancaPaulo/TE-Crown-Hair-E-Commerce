@@ -1,31 +1,60 @@
 <?php
-require_once '../includes/auth.php'; requireAdmin(); require_once '../includes/db.php'; require_once '../includes/order-view.php'; require_once '../includes/admin-layout.php';
-$message='';
+require_once '../includes/auth.php'; requireAdmin();
+require_once '../includes/db.php'; require_once '../includes/enquiries.php'; require_once '../includes/admin-layout.php';
+$error='';
+$statuses=['pending'=>'Pending','processing'=>'Processing','shipped'=>'Shipped','completed'=>'Completed','cancelled'=>'Cancelled'];
+$payments=['pending'=>'Pending','paid'=>'Paid','failed'=>'Failed'];
 if ($_SERVER['REQUEST_METHOD']==='POST') {
- checkCsrf();$id=(int)($_POST['id']??0);$next=$_POST['status']??'';$payment=$_POST['payment']??'';
- $allowed=['pending'=>['pending','processing','cancelled'],'processing'=>['processing','shipped','cancelled'],'shipped'=>['shipped','completed'],'completed'=>['completed'],'cancelled'=>['cancelled']];
- try { mysqli_report(MYSQLI_REPORT_ERROR|MYSQLI_REPORT_STRICT);$conn->begin_transaction();
- $s=$conn->prepare('SELECT * FROM orders WHERE id=? FOR UPDATE');$s->bind_param('i',$id);$s->execute();$o=$s->get_result()->fetch_assoc();
- if ($o && isDemoOrder($conn,$id) && $payment!==$o['payment_status']) throw new RuntimeException('Use the local simulator to change demo payment status.');
- if (!$o || !in_array($next,$allowed[$o['order_status']],true) || !in_array($payment,['pending','paid','failed'],true)) throw new RuntimeException('Invalid order status transition.');
- if ($o['payment_status']==='paid' && $payment!=='paid') throw new RuntimeException('Paid orders require a separate refund process; payment cannot be reversed here.');
- if (in_array($next,['processing','shipped','completed']) && $payment!=='paid') throw new RuntimeException('Confirm EFT receipt before processing this order.');
- if ($next==='cancelled' && $o['payment_status']==='paid') throw new RuntimeException('Resolve the paid order refund before cancellation.');
- if ($o['order_status']==='cancelled' && $payment!==$o['payment_status']) throw new RuntimeException('Cancelled orders cannot accept payments.');
- if ($next==='cancelled' && $o['order_status']!=='cancelled') {
-  $s=$conn->prepare('SELECT product_id,SUM(quantity) qty FROM order_items WHERE order_id=? GROUP BY product_id ORDER BY product_id');$s->bind_param('i',$id);$s->execute();
-  foreach ($s->get_result() as $item) { $u=$conn->prepare('UPDATE products SET stock=stock+? WHERE id=?');$u->bind_param('ii',$item['qty'],$item['product_id']);$u->execute(); }
- }
- $s=$conn->prepare('UPDATE orders SET order_status=?,payment_status=? WHERE id=?');$s->bind_param('ssi',$next,$payment,$id);$s->execute();$conn->commit();header('Location: orders.php?id='.$id);exit;
- } catch (Throwable $e) { $conn->rollback(); $message=$e instanceof RuntimeException && !($e instanceof mysqli_sql_exception)?$e->getMessage():'The order could not be updated.'; }
+    checkCsrf();
+    try {
+        $id=filter_var($_POST['id'] ?? null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+        $next=enquiryText('status',20);$payment=enquiryText('payment',20);
+        if (!$id || !isset($statuses[$next],$payments[$payment])) throw new InvalidArgumentException('Choose a valid order and status.');
+        $allowed=['pending'=>['pending','processing','cancelled'],'processing'=>['processing','shipped','cancelled'],'shipped'=>['shipped','completed'],'completed'=>['completed'],'cancelled'=>['cancelled']];
+        mysqli_report(MYSQLI_REPORT_ERROR|MYSQLI_REPORT_STRICT);$conn->begin_transaction();
+        $stmt=$conn->prepare('SELECT * FROM orders WHERE id=? FOR UPDATE');$stmt->bind_param('i',$id);$stmt->execute();$order=$stmt->get_result()->fetch_assoc();
+        if (!$order) throw new InvalidArgumentException('Order not found.');
+        if (isDemoOrder($conn,$id) && $payment!==$order['payment_status']) throw new InvalidArgumentException('Use the local simulator to change demo payment status.');
+        if (!in_array($next,$allowed[$order['order_status']],true)) throw new InvalidArgumentException('This order cannot move to the selected status.');
+        if ($order['payment_status']==='paid' && $payment!=='paid') throw new InvalidArgumentException('Paid orders require a separate refund process; payment cannot be reversed here.');
+        if (in_array($next,['processing','shipped','completed'],true) && $payment!=='paid') throw new InvalidArgumentException('Confirm payment before processing this order.');
+        if ($next==='cancelled' && $order['payment_status']==='paid') throw new InvalidArgumentException('Resolve the paid order refund before cancellation.');
+        if ($order['order_status']==='cancelled' && $payment!==$order['payment_status']) throw new InvalidArgumentException('Cancelled orders cannot accept payments.');
+        if ($next==='cancelled' && $order['order_status']!=='cancelled') {
+            $stmt=$conn->prepare('SELECT product_id,SUM(quantity) qty FROM order_items WHERE order_id=? GROUP BY product_id ORDER BY product_id');$stmt->bind_param('i',$id);$stmt->execute();
+            foreach ($stmt->get_result() as $item) {$update=$conn->prepare('UPDATE products SET stock=stock+? WHERE id=?');$update->bind_param('ii',$item['qty'],$item['product_id']);$update->execute();}
+        }
+        $stmt=$conn->prepare('UPDATE orders SET order_status=?,payment_status=? WHERE id=?');$stmt->bind_param('ssi',$next,$payment,$id);$stmt->execute();$conn->commit();
+        header('Location: orders.php?id='.$id.'&saved=1',true,303);exit;
+    } catch (InvalidArgumentException $exception) {try {$conn->rollback();}catch(Throwable $ignored){} http_response_code(422);$error=$exception->getMessage();}
+    catch (Throwable $exception) {try {$conn->rollback();}catch(Throwable $ignored){} http_response_code(503);$error='The order could not be updated. Please try again.';}
 }
-adminStart('Orders'); if ($message) echo '<p role="alert">'.e($message).'</p>';
-$selected=(int)($_GET['id']??0);$s=$conn->prepare('SELECT o.*,u.name,u.email,d.delivery FROM orders o JOIN users u ON u.id=o.user_id LEFT JOIN order_details d ON d.order_id=o.id WHERE (?=0 OR o.id=?) ORDER BY o.id DESC');$s->bind_param('ii',$selected,$selected);$s->execute();
-foreach ($s->get_result() as $o): ?>
-<section class="admin-panel"><h2>Order #TC<?php echo $o['id']; ?></h2><p><?php echo e($o['name'].' · '.$o['email'].' · '.$o['order_date']); ?></p>
-<?php foreach (orderItems($conn,$o['id']) as $item): ?><p><?php echo e($item['name'].' '.$item['colour'].' '.$item['length']); ?> × <?php echo (int)$item['quantity']; ?> — R<?php echo number_format($item['price']*$item['quantity'],2); ?></p><?php endforeach; ?>
-<?php if (isDemoOrder($conn,$o['id'])) demoHistory($conn,$o['id']); ?>
-<p><strong>R<?php echo number_format($o['total_amount'],2); ?></strong> · <?php echo e(strtoupper($o['payment_method'])); ?></p>
-<?php if ($o['delivery']): ?><h3>Delivery</h3><?php foreach (json_decode($o['delivery'],true) ?? [] as $key=>$value) echo '<p>'.e($key).': '.e($value).'</p>'; endif; ?>
-<form method="post"><?php echo csrfField(); ?><input type="hidden" name="id" value="<?php echo $o['id']; ?>"><label>Order status <select name="status"><?php foreach (['pending','processing','shipped','completed','cancelled'] as $status) echo '<option '.($status===$o['order_status']?'selected':'').' value="'.$status.'">'.$status.'</option>'; ?></select></label><label>Payment status <select name="payment"><?php foreach (['pending','paid','failed'] as $status) echo '<option '.($status===$o['payment_status']?'selected':'').' value="'.$status.'">'.$status.'</option>'; ?></select></label><p>For live EFT, confirm receipt independently. Demo payment status is controlled by the local simulator.</p><button class="admin-edit-button" type="submit">Save order</button></form></section>
-<?php endforeach; adminEnd(); ?>
+$id=filter_var($_GET['id'] ?? $_POST['id'] ?? 0,FILTER_VALIDATE_INT,['options'=>['min_range'=>0]]) ?: 0;
+$order=null;
+if ($id) {$stmt=$conn->prepare('SELECT o.*,u.name,u.email,d.delivery FROM orders o JOIN users u ON u.id=o.user_id LEFT JOIN order_details d ON d.order_id=o.id WHERE o.id=?');$stmt->bind_param('i',$id);$stmt->execute();$order=$stmt->get_result()->fetch_assoc();if (!$order) {http_response_code(404);exit('Order not found.');}}
+adminStart('Orders'); ?>
+<p class="admin-page-intro">Review purchases, payment state and delivery progress. Demo payments are always marked clearly.</p>
+<?php if ($error): ?><p class="enquiry-notice enquiry-error" role="alert"><?php echo e($error); ?></p><?php endif; ?>
+<?php if (isset($_GET['saved'])): ?><p class="enquiry-notice" role="status">Order updated.</p><?php endif; ?>
+<?php if ($order): $demo=isDemoOrder($conn,$id); ?>
+<p><a class="admin-text-link" href="orders.php">All orders</a></p>
+<section class="admin-panel admin-order-detail"><header class="admin-enquiry-heading"><div><p class="account-eyebrow">ORDER #TC<?php echo $id; ?></p><h2>Order details</h2><p class="account-enquiry-date">Placed <?php echo e(enquiryDate($order['order_date'])); ?> SAST</p></div><span class="account-status status-<?php echo e($order['order_status']); ?>"><?php echo e($statuses[$order['order_status']]); ?></span></header>
+<?php if ($demo): ?><div class="enquiry-notice admin-demo-notice">Sandbox / demo order. No real funds have been collected. Payment outcomes are controlled by the local simulator.</div><?php endif; ?>
+<div class="admin-order-customer"><span>Customer</span><strong><?php echo e($order['name']); ?></strong><span><?php echo e($order['email']); ?></span></div>
+<div class="admin-table-wrapper" tabindex="0" aria-label="Data table; scroll horizontally to view all columns on small screens"><table class="admin-table"><thead><tr><th>Product</th><th>Quantity</th><th>Unit price</th><th>Line total</th></tr></thead><tbody><?php foreach (orderItems($conn,$id) as $item): ?><tr><td><strong><?php echo e($item['name']); ?></strong><span class="admin-cell-note"><?php echo e(trim($item['colour'].' '.$item['length'])); ?></span></td><td data-label="Quantity"><?php echo (int)$item['quantity']; ?></td><td data-label="Unit price">R<?php echo number_format($item['price'],2); ?></td><td data-label="Line total">R<?php echo number_format($item['price']*$item['quantity'],2); ?></td></tr><?php endforeach; ?></tbody></table></div>
+<div class="admin-order-total"><span>Order total</span><strong>R<?php echo number_format($order['total_amount'],2); ?></strong></div>
+<div class="admin-order-info-grid"><section><h3>Delivery details</h3><?php $delivery=json_decode($order['delivery'] ?? '',true); if (is_array($delivery)): ?><dl class="admin-delivery-list"><?php $deliveryLabels=['firstName'=>'First name','lastName'=>'Last name','phone'=>'Phone','address'=>'Address','city'=>'City','province'=>'Province','postalCode'=>'Postal code','notes'=>'Notes']; foreach ($deliveryLabels as $key=>$label): if (isset($delivery[$key]) && is_scalar($delivery[$key]) && (string)$delivery[$key]!==''): ?><div><dt><?php echo $label; ?></dt><dd><?php echo e($delivery[$key]); ?></dd></div><?php endif; endforeach; ?></dl><?php else: ?><p class="admin-form-hint">No delivery details were recorded for this earlier order.</p><?php endif; ?></section>
+<section><h3>Payment record</h3><p class="admin-form-hint"><?php echo $demo?'Local demo payment':e(strtoupper($order['payment_method'])); ?></p><span class="account-status status-<?php echo $order['payment_status']==='paid'?'completed':($order['payment_status']==='failed'?'cancelled':'pending'); ?>"><?php echo e($payments[$order['payment_status']]); ?></span><?php if ($demo): ?><div class="admin-demo-transactions"><?php demoHistory($conn,$id); ?></div><?php endif; ?></section></div>
+<form method="post" class="admin-order-update"><?php echo csrfField(); ?><input type="hidden" name="id" value="<?php echo $id; ?>"><h3>Update order</h3><div class="admin-order-control-grid"><div><label for="orderStatus">Order status</label><select id="orderStatus" name="status" class="form-control"><?php foreach ($statuses as $key=>$label): ?><option value="<?php echo $key; ?>" <?php echo $key===$order['order_status']?'selected':''; ?>><?php echo $label; ?></option><?php endforeach; ?></select></div><div><label for="paymentStatus">Payment status</label><select id="paymentStatus" name="payment" class="form-control" <?php echo $demo?'disabled':''; ?>><?php foreach ($payments as $key=>$label): ?><option value="<?php echo $key; ?>" <?php echo $key===$order['payment_status']?'selected':''; ?>><?php echo $label; ?></option><?php endforeach; ?></select><?php if ($demo): ?><input type="hidden" name="payment" value="<?php echo e($order['payment_status']); ?>"><?php endif; ?></div></div><p class="admin-form-hint"><?php echo $demo?'Demo payment status cannot be changed from admin.':'Confirm EFT receipt independently before marking paid.'; ?> Cancelling an unpaid order restores its reserved stock once.</p><button class="admin-primary-button" type="submit">Save order</button></form></section>
+<?php else:
+$filter=is_string($_GET['status'] ?? null) ? $_GET['status'] : '';if ($filter!=='' && !isset($statuses[$filter])) $filter='';
+$page=filter_var($_GET['page'] ?? 1,FILTER_VALIDATE_INT,['options'=>['min_range'=>1,'max_range'=>100000]]) ?: 1;$offset=($page-1)*30;
+$counts=$conn->query("SELECT COUNT(*) total,COALESCE(SUM(order_status='pending'),0) pending,COALESCE(SUM(order_status='processing'),0) processing FROM orders")->fetch_assoc();
+$stmt=$conn->prepare("SELECT o.*,u.name,EXISTS(SELECT 1 FROM demo_payments d WHERE d.order_id=o.id) is_demo FROM orders o JOIN users u ON u.id=o.user_id WHERE (?='' OR o.order_status=?) ORDER BY o.id DESC LIMIT 31 OFFSET ?");$stmt->bind_param('ssi',$filter,$filter,$offset);$stmt->execute();$rows=$stmt->get_result()->fetch_all(MYSQLI_ASSOC);$hasNext=count($rows)>30;$rows=array_slice($rows,0,30);
+?>
+<div class="admin-summary-strip"><div><span>Total orders</span><strong><?php echo (int)$counts['total']; ?></strong></div><div><span>Awaiting payment / action</span><strong><?php echo (int)$counts['pending']; ?></strong></div><div><span>In processing</span><strong><?php echo (int)$counts['processing']; ?></strong></div></div>
+<section class="admin-panel"><header class="admin-enquiry-heading"><div><p class="account-eyebrow">PURCHASE MANAGEMENT</p><h2>All orders</h2></div></header><form method="get" class="admin-enquiry-filter"><label for="orderFilter">Order status</label><select id="orderFilter" name="status"><option value="">All orders</option><?php foreach ($statuses as $key=>$label): ?><option value="<?php echo $key; ?>" <?php echo $key===$filter?'selected':''; ?>><?php echo $label; ?></option><?php endforeach; ?></select><button class="admin-edit-button" type="submit">Apply filter</button></form>
+<div class="admin-table-wrapper" tabindex="0" aria-label="Data table; scroll horizontally to view all columns on small screens"><table class="admin-table"><thead><tr><th>Order / customer</th><th>Placed (SAST)</th><th>Total</th><th>Payment</th><th>Order status</th><th>Action</th></tr></thead><tbody>
+<?php if (!$rows): ?><tr><td colspan="6" class="admin-empty-cell">No orders match this view. New purchases will appear here when customers complete checkout.</td></tr><?php endif; ?>
+<?php foreach ($rows as $row): ?><tr><td><strong>#TC<?php echo (int)$row['id']; ?></strong><span class="admin-cell-note"><?php echo e($row['name']); ?><?php if ($row['is_demo']): ?><br>Sandbox / demo<?php endif; ?></span></td><td><?php echo e(enquiryDate($row['order_date'])); ?></td><td>R<?php echo number_format($row['total_amount'],2); ?></td><td><span class="account-status status-<?php echo $row['payment_status']==='paid'?'completed':($row['payment_status']==='failed'?'cancelled':'pending'); ?>"><?php echo e($payments[$row['payment_status']]); ?></span></td><td><span class="account-status status-<?php echo e($row['order_status']); ?>"><?php echo e($statuses[$row['order_status']]); ?></span></td><td><a class="admin-edit-button" href="orders.php?id=<?php echo (int)$row['id']; ?>">View order</a></td></tr><?php endforeach; ?></tbody></table></div><nav class="enquiry-pagination" aria-label="Order pages"><?php if ($page>1): ?><a href="?page=<?php echo $page-1; ?>&amp;status=<?php echo e($filter); ?>">Previous page</a><?php endif; ?><span>Page <?php echo $page; ?></span><?php if ($hasNext): ?><a href="?page=<?php echo $page+1; ?>&amp;status=<?php echo e($filter); ?>">Next page</a><?php endif; ?></nav></section>
+<?php endif; adminEnd(); ?>

@@ -59,11 +59,19 @@ cancel,(status,body,_)=pay(cancel_id,'cancel');check('cancelled' in body and 'Pa
 status,body,_=customer.request('/pages/demo-payment.php',cancel);check(body.count('· cancel ·')==1,'repeat cancellation creates no second transaction')
 admin=Client();status,body,url=admin.login('admin@example.invalid');check('/admin/index.php' in url,'admin shared login redirects to dashboard')
 for path in ['/admin/products.php','/admin/categories.php','/admin/add-product.php','/admin/edit-product.php?id=1','/admin/customers.php','/admin/orders.php']:
- check(admin.request(path)[0]==200,'admin page '+path)
+ status,page_body,_=admin.request(path);check(status==200 and 'Quick Links' not in page_body,'admin page without storefront footer '+path)
 csrf,body=admin.csrf('/admin/categories.php')
 category={'csrf':csrf,'action':'add','categoryName':"Repair's Test Category",'description':'Fixture category'}
-status,body,_=admin.request('/admin/categories.php',category);check(status==200 and 'successfully' in body,'admin creates category')
+status,body,_=admin.request('/admin/categories.php',category);check(status==200 and 'Category added.' in body,'admin creates category')
 status,body,_=admin.request('/admin/categories.php',category);check('already exists' in body,'duplicate category handled without failure')
+category_row=next(row for row in re.findall(r'<tr>.*?</tr>',body,re.S) if 'Test Category' in row)
+category_id=int(re.search(r'categories.php\?edit=(\d+)',category_row)[1])
+status,body,url=admin.request('/admin/categories.php',{'csrf':csrf,'action':'edit','categoryId':category_id,'categoryName':'Edited fixture category','description':'Updated fixture'})
+check('success=updated' in url,'admin edits category')
+status,body,url=admin.request('/admin/categories.php',{'csrf':csrf,'action':'delete','categoryId':category_id})
+check('success=deleted' in url,'admin deletes empty category')
+status,body,url=admin.request('/admin/categories.php',{'csrf':csrf,'action':'delete','categoryId':1})
+check(status==422 and 'contains products' in body,'server protects category containing products')
 csrf,_=admin.csrf('/admin/add-product.php')
 product={'csrf':csrf,'productName':'Repair Fixture Product','category':1,'description':'Fixture only','price':'12.34','stock':'3','status':'active'}
 status,body,url=admin.request('/admin/add-product.php',product);check('success=added' in url,'admin creates real product')

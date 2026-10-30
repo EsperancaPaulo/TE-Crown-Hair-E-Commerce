@@ -3,6 +3,11 @@ require_once '../includes/auth.php';
 requireCustomer();
 require_once '../includes/db.php';
 require_once '../includes/order-view.php';
+require_once '../includes/enquiries.php';
+$myEnquiries=customerEnquiries($conn);
+$countEnquiries=$conn->prepare('SELECT COUNT(*) total FROM enquiries WHERE user_id=?');
+$countEnquiries->bind_param('i',$_SESSION['user_id']);$countEnquiries->execute();
+$enquiryCount=(int)$countEnquiries->get_result()->fetch_assoc()['total'];
 
 $stmt = $conn->prepare('SELECT * FROM orders WHERE user_id=? ORDER BY id DESC');
 $stmt->bind_param('i', $_SESSION['user_id']);
@@ -19,7 +24,7 @@ include '../includes/navbar.php';
             <div>
                 <p class="account-eyebrow">YOUR PERSONAL SPACE</p>
                 <h1>My account</h1>
-                <p>Good to see you, <strong><?php echo e($_SESSION['user_name']); ?></strong>.<br>Keep track of your orders and find your next favourite.</p>
+                <p>Good to see you, <strong><?php echo e($_SESSION['user_name']); ?></strong>.<br>Keep track of your orders and enquiries in one place.</p>
             </div>
             <a class="account-action account-action-primary" href="shop.php">Continue shopping</a>
         </header>
@@ -46,6 +51,7 @@ include '../includes/navbar.php';
                 </div>
             </aside>
 
+            <div class="account-activity-column">
             <section class="account-orders-panel" aria-labelledby="ordersHeading">
                 <header class="account-orders-heading">
                     <div><p class="account-eyebrow">YOUR SHOPPING JOURNEY</p><h2 id="ordersHeading">Order history</h2></div>
@@ -81,6 +87,12 @@ include '../includes/navbar.php';
                     </div>
                 <?php endif; ?>
             </section>
+            <section id="enquiries" class="account-orders-panel" aria-labelledby="enquiriesHeading">
+                <header class="account-orders-heading"><div><p class="account-eyebrow">WE’RE HERE FOR YOU</p><h2 id="enquiriesHeading">My enquiries</h2></div><span class="account-order-count"><?php echo $enquiryCount; ?> <?php echo $enquiryCount===1 ? 'enquiry' : 'enquiries'; ?></span></header>
+                <?php if (!$enquiryCount): ?><div class="account-empty-state account-enquiry-empty"><h3>A little help with your crown?</h3><p>Send us a question about a product or order. You’ll find your message, our replies and its status here.</p><a class="account-action account-action-primary" href="contact.php">Send an enquiry</a></div>
+                <?php else: ?><?php foreach ($myEnquiries as $item) renderEnquirySummary($item); ?><div class="account-enquiry-actions"><a class="account-order-link" href="enquiries.php">View all enquiries</a><a class="account-action account-action-secondary" href="contact.php">Send a new enquiry</a></div><?php endif; ?>
+            </section>
+            </div>
         </div>
         <p class="account-help-note">A little help with your crown? <a href="contact.php">Get in touch with us</a>.</p>
     </div>

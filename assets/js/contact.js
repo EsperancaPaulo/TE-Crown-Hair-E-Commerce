@@ -1,1 +1,1 @@
-document.addEventListener('DOMContentLoaded',()=>{const form=document.getElementById('contactForm');if(form)form.addEventListener('submit',event=>{event.preventDefault();alert('Online message delivery is not connected yet. Please use the contact details shown on this page. Your message has not been sent.');});});
+// Contact is submitted and validated by pages/contact.php; JavaScript is not required.

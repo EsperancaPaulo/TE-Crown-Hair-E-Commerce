@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+set -eu
+cd "$(dirname "$0")/.."
+# Multiple workers keep browser preconnections or a slow request from blocking every tab.
+PHP_CLI_SERVER_WORKERS="${PHP_CLI_SERVER_WORKERS:-4}"
+export PHP_CLI_SERVER_WORKERS
+exec php -d max_execution_time=30 -S "${SHOP_LISTEN:-127.0.0.1:8001}" router.php

@@ -1,3 +1,15 @@
+## Reliable local startup
+
+Use `./bin/serve` (macOS/Linux) to start the protected local shop at `http://127.0.0.1:8001`. It uses four PHP development workers and a 30-second execution limit, so a stalled request/browser preconnection is less likely to block every tab. Use `SHOP_LISTEN=127.0.0.1:8017 DB_NAME=te_crown_repair_test ./bin/serve` for the isolated fixture shop. This remains a development server, not production hosting. Bootstrap 5.3.3 CSS/JS are served locally with upstream MIT licence notices retained; page rendering no longer waits on the external CDN. The script bundle is deferred. Authentication remains server-side and unchanged by these serving improvements.
+
+## Enquiry tracking and admin updates
+
+Run `php database/migrate.php` after pulling these changes. It adds `enquiries` and `enquiry_replies` without resetting existing data. Contact submissions now persist: messages sent while signed in are bound to the authenticated customer's ID and appear in My account → My enquiries. The dashboard shows the five most recent enquiries and latest replies; View all enquiries opens a paginated list and each enquiry has its full response history. Statuses are Open, In progress, Replied and Resolved, with South African display timestamps.
+
+Administrators manage enquiries from the shared sidebar. Responses and status changes are saved together, with role/CSRF checks, input limits, safe output escaping, duplicate-response protection and stale-edit checks. Replies are visible in the customer's dashboard; no external email notification is sent. Guest submissions remain explicitly unlinked, even when their supplied email matches a registered account. Guest replies saved in admin are internal only. Previous unsent Contact messages cannot be recovered because there was no enquiry storage before this upgrade.
+
+All admin pages now share the Products-style sidebar and omit the storefront footer. Categories and Orders have responsive management screens. Customers always reads registered customer records from the configured database; no sample fallback is used. The separate `te_crown_repair_test` database is only for fictional test fixtures and must never be configured as the real shop database.
+
 ## October 2026 repair update
 
 Run `php database/migrate.php` once to add missing verification/access columns and order detail tables without clearing data. For a fresh database, import `database/schema.sql` first, then run that migration. Back up the database before upgrades.
@@ -8,7 +20,7 @@ Start locally with `php -S localhost:8001 router.php`. The router blocks private
 
 Checkout now persists orders, delivery details, selected options and inventory reservations in a transaction. Prices and stock are read from the database; repeat submissions reuse the original order. The local sandbox payment page offers explicit success, decline, and cancellation controls without collecting real financial details. Server-side simulation records a unique DEMO transaction reference. Success marks demo payment paid and starts processing; decline permits retry on the same order; cancellation restores stock exactly once. Duplicate submissions never create a second successful transaction or reserve stock again. Demo payment labels appear in customer/admin order views, and demo totals are excluded from paid revenue. Admin cannot manually mark demo payments paid. This is not a payment provider integration; real funds, refunds and live card processing are not implemented. Delivery is currently included at R0; configure a real shipping policy before commercial use.
 
-Admin dashboard, customers, orders and customer history use real records. Customer deactivation revokes existing access on the next request. Existing registration still sends verification through Brevo, using a 30-minute single-use token. Expired/undelivered email recovery still needs administrator assistance. Online contact-message delivery is not implemented and now states that honestly.
+Admin dashboard, customers, orders and customer history use real records. Customer deactivation revokes existing access on the next request. Existing registration still sends verification through Brevo, using a 30-minute single-use token. Expired/undelivered email recovery still needs administrator assistance. Contact messages now persist through the enquiry workflow described above; no email notifications are sent.
 
 # TE_Crown Hair — E-Commerce Platform
 

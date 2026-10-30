@@ -123,128 +123,7 @@ $result = $conn->query($sql);
 
 ?>
 
-<?php include '../includes/header.php'; ?>
-
-
-<div class="admin-layout">
-
-    <!-- =========================
-         SIDEBAR
-         ========================= -->
-
-    <aside class="admin-sidebar">
-
-        <div class="admin-brand">
-
-            <img
-                src="/assets/images/logo/logo.png"
-                alt="TE_Crown Hair Logo"
-            >
-
-            <div>
-
-                <strong>TE_Crown Hair</strong>
-
-                <span>Admin Panel</span>
-
-            </div>
-
-        </div>
-
-
-        <nav class="admin-navigation">
-
-            <a
-                href="index.php"
-                class="admin-nav-link"
-            >
-                <span>▦</span>
-                Dashboard
-            </a>
-
-
-            <a
-                href="products.php"
-                class="admin-nav-link active"
-            >
-                <span>🛍</span>
-                Products
-            </a>
-
-
-            <a
-                href="categories.php"
-                class="admin-nav-link"
-            >
-                <span>▤</span>
-                Categories
-            </a>
-
-
-            <a
-                href="customers.php"
-                class="admin-nav-link"
-            >
-                <span>👥</span>
-                Customers
-            </a>
-
-
-            <a
-                href="orders.php"
-                class="admin-nav-link"
-            >
-                <span>🛒</span>
-                Orders
-            </a>
-
-        </nav>
-
-
-        <div class="admin-sidebar-bottom">
-
-            <a
-                href="/index.php"
-                class="admin-nav-link"
-            >
-                <span>🌐</span>
-                View Website
-            </a>
-
-
-            <a
-                href="../pages/logout.php"
-                class="admin-nav-link admin-logout"
-            >
-                <span>↪</span>
-                Logout
-            </a>
-
-        </div>
-
-    </aside>
-
-
-    <!-- =========================
-         MAIN CONTENT
-         ========================= -->
-
-    <main class="admin-main">
-
-        <!-- TOP BAR -->
-
-        <div class="admin-topbar">
-
-            <div class="admin-page-label">
-                Product Management
-            </div>
-
-            <div class="admin-user">
-                <span>Administrator</span>
-            </div>
-
-        </div>
-
+<?php require_once '../includes/admin-layout.php'; adminShellStart('Products'); ?>
 
         <!-- PAGE HEADER -->
 
@@ -382,10 +261,7 @@ $result = $conn->query($sql);
 
                             <?php
 
-                            $imagePath = !empty($product["image"])
-                                ? "/assets/images/products/" .
-                                  htmlspecialchars($product["image"])
-                                : "";
+                            $imagePath = htmlspecialchars(productImageUrl($product['image']));
 
                             ?>
 
@@ -666,4 +542,4 @@ categoryFilter.addEventListener(
 </script>
 
 
-<?php include '../includes/footer.php'; ?>
+<?php include '../includes/admin-footer.php'; ?>
