@@ -19,9 +19,9 @@ include '../includes/navbar.php';
             <div>
                 <p class="account-eyebrow">YOUR PERSONAL SPACE</p>
                 <h1>My account</h1>
-                <p>Welcome back, <strong><?php echo e($_SESSION['user_name']); ?></strong>.<br>Keep track of your orders and find your next favourite.</p>
+                <p>Good to see you, <strong><?php echo e($_SESSION['user_name']); ?></strong>.<br>Keep track of your orders and find your next favourite.</p>
             </div>
-            <a class="account-action account-action-primary" href="shop.php">Continue shopping <span aria-hidden="true">↗</span></a>
+            <a class="account-action account-action-primary" href="shop.php">Continue shopping</a>
         </header>
 
         <div class="account-dashboard-grid">
@@ -36,12 +36,12 @@ include '../includes/navbar.php';
                     <div><dt>Full name</dt><dd><?php echo e($_SESSION['user_name']); ?></dd></div>
                     <div><dt>Email address</dt><dd><?php echo e($_SESSION['user_email']); ?></dd></div>
                 </dl>
-                <a class="account-action account-action-secondary" href="cart.php">View my cart <span aria-hidden="true">→</span></a>
+                <a class="account-action account-action-secondary" href="cart.php">View my cart</a>
                 <div class="account-signout">
                     <p>Finished for now?</p>
                     <form action="logout.php" method="post">
                         <?php echo csrfField(); ?>
-                        <button type="submit" class="account-action account-action-logout">Log out <span aria-hidden="true">↗</span></button>
+                        <button type="submit" class="account-action account-action-logout">Log out</button>
                     </form>
                 </div>
             </aside>
@@ -56,7 +56,7 @@ include '../includes/navbar.php';
                         <span class="account-empty-icon" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none"><path d="M12 16h24l3 25H9l3-25Z" stroke="currentColor" stroke-width="1.8"/><path d="M18 18V12a6 6 0 0 1 12 0v6" stroke="currentColor" stroke-width="1.8"/></svg></span>
                         <h3>Your next crown is waiting</h3>
                         <p>Once you place your first order, you’ll find its details and progress right here.</p>
-                        <a class="account-action account-action-primary" href="shop.php">Explore the collection <span aria-hidden="true">→</span></a>
+                        <a class="account-action account-action-primary" href="shop.php">Explore the collection</a>
                         <span class="account-empty-note">Wigs, extensions &amp; the finishing touches.</span>
                     </div>
                 <?php else: ?>
@@ -74,7 +74,7 @@ include '../includes/navbar.php';
                                 </div>
                                 <div class="account-order-end">
                                     <strong>R<?php echo number_format($order['total_amount'], 2); ?></strong>
-                                    <a class="account-order-link" href="order-confirmation.php?id=<?php echo (int)$order['id']; ?>" aria-label="View order TC<?php echo (int)$order['id']; ?>">View details <span aria-hidden="true">→</span></a>
+                                    <a class="account-order-link" href="order-confirmation.php?id=<?php echo (int)$order['id']; ?>" aria-label="View order TC<?php echo (int)$order['id']; ?>">View details</a>
                                 </div>
                             </article>
                         <?php endwhile; ?>
