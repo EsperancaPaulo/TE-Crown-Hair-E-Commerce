@@ -132,7 +132,7 @@ $productResult = $conn->query($productQuery);
                             type="button"
                             class="category-button"
                             onclick="filterProducts(
-                                '<?php echo htmlspecialchars($categorySlug); ?>',
+                                <?php echo htmlspecialchars(json_encode($categorySlug, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP), ENT_QUOTES); ?>,
                                 this
                             )"
                         >
@@ -197,7 +197,7 @@ $productResult = $conn->query($productQuery);
                         <div
                             class="col-lg-3 col-md-6 product-item"
                             data-category="<?php echo htmlspecialchars($categorySlug); ?>"
-                            data-name="<?php echo htmlspecialchars(strtolower($product['name'])); ?>"
+                            data-id="<?php echo (int)$product['id']; ?>" data-stock="<?php echo (int)$product['stock']; ?>" data-image="<?php echo htmlspecialchars(basename($product['image'] ?? '')); ?>" data-name="<?php echo htmlspecialchars(strtolower($product['name'])); ?>"
                         >
 
                             <div class="shop-product-card">
@@ -209,7 +209,7 @@ $productResult = $conn->query($productQuery);
                                     <?php if (!empty($product['image'])): ?>
 
                                         <img
-                                            src="../assets/images/products/<?php echo htmlspecialchars($product['image']); ?>"
+                                            src="<?php echo htmlspecialchars(productImageUrl($product['image'])); ?>"
                                             alt="<?php echo htmlspecialchars($product['name']); ?>"
                                         >
 

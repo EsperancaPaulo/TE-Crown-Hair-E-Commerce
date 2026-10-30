@@ -17,6 +17,7 @@ $messageType = "";
 */
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    checkCsrf();
 
     $action = $_POST["action"] ?? "";
 
@@ -407,7 +408,7 @@ $result =
 
 
             <a
-                href="#"
+                href="../pages/logout.php"
                 class="admin-nav-link admin-logout"
             >
                 <span>↪</span>
@@ -490,7 +491,7 @@ $result =
             <form
                 method="POST"
                 class="admin-product-form"
-            >
+            ><?php echo csrfField(); ?>
 
                 <input
                     type="hidden"
@@ -638,8 +639,8 @@ $result =
                                     class="admin-edit-button"
                                     onclick="editCategory(
                                         <?php echo $category["id"]; ?>,
-                                        '<?php echo htmlspecialchars($category["name"], ENT_QUOTES); ?>',
-                                        '<?php echo htmlspecialchars($category["description"] ?? "", ENT_QUOTES); ?>'
+                                        <?php echo htmlspecialchars(json_encode($category['name'], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP), ENT_QUOTES); ?>,
+                                        <?php echo htmlspecialchars(json_encode($category['description'] ?? '', JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP), ENT_QUOTES); ?>
                                     )"
                                 >
                                     Edit
@@ -650,7 +651,7 @@ $result =
                                     method="POST"
                                     style="display:inline;"
                                     onsubmit="return confirm('Are you sure you want to delete this category?');"
-                                >
+                                ><?php echo csrfField(); ?>
 
                                     <input
                                         type="hidden"
@@ -724,7 +725,7 @@ $result =
         <form
             method="POST"
             class="admin-product-form"
-        >
+        ><?php echo csrfField(); ?>
 
             <input
                 type="hidden"

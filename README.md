@@ -1,3 +1,15 @@
+## October 2026 repair update
+
+Run `php database/migrate.php` once to add missing verification/access columns and order detail tables without clearing data. For a fresh database, import `database/schema.sql` first, then run that migration. Back up the database before upgrades.
+
+Copy `.env.example` settings into your private `.env` as needed. Set `APP_URL` to the actual site origin so Brevo verification emails point to the correct site. Existing Brevo settings remain in `.env` and are never committed. No email is sent by the test suite.
+
+Start locally with `php -S localhost:8001 router.php`. The router blocks private configuration, database files and dependencies. Apache hosting must honor the supplied `.htaccess`; other servers require equivalent private-path rules. Do not serve this repository with an unrestricted static server.
+
+Checkout now persists orders, delivery details, selected options and inventory reservations in a transaction. Prices and stock are read from the database; repeat submissions reuse the original order. The local sandbox payment page offers explicit success, decline, and cancellation controls without collecting real financial details. Server-side simulation records a unique DEMO transaction reference. Success marks demo payment paid and starts processing; decline permits retry on the same order; cancellation restores stock exactly once. Duplicate submissions never create a second successful transaction or reserve stock again. Demo payment labels appear in customer/admin order views, and demo totals are excluded from paid revenue. Admin cannot manually mark demo payments paid. This is not a payment provider integration; real funds, refunds and live card processing are not implemented. Delivery is currently included at R0; configure a real shipping policy before commercial use.
+
+Admin dashboard, customers, orders and customer history use real records. Customer deactivation revokes existing access on the next request. Existing registration still sends verification through Brevo, using a 30-minute single-use token. Expired/undelivered email recovery still needs administrator assistance. Online contact-message delivery is not implemented and now states that honestly.
+
 # TE_Crown Hair — E-Commerce Platform
 
 > A database-driven e-commerce platform developed for TE_Crown Hair, a small hair and beauty business based in Gauteng, South Africa.

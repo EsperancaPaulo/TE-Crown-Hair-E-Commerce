@@ -3,3 +3,10 @@
 users_backup.sql
 test-email.php
 pages/register_backup.php
+
+.env.*
+!.env.example
+*.log
+.DS_Store
+*backup*.sql
+*.sql.gz

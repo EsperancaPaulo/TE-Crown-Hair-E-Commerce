@@ -39,7 +39,7 @@ $lastName = count($nameParts) > 1
 
             <p>
                 Complete your details and payment method
-                to place your order.
+                to place your order. Prices and stock are confirmed when you submit.
             </p>
 
         </div>
@@ -65,7 +65,9 @@ $lastName = count($nameParts) > 1
 
                     <div class="checkout-form">
 
-                        <form id="checkoutForm">
+                        <form id="checkoutForm" method="post" action="process-order.php"><?php echo csrfField(); ?>
+<input type="hidden" name="request_key" value="<?php echo bin2hex(random_bytes(32)); ?>">
+<p id="checkoutMessage" role="status" aria-live="polite"></p>
 
                             <!-- CUSTOMER INFORMATION -->
 
@@ -318,36 +320,7 @@ $lastName = count($nameParts) > 1
                             <div class="payment-methods">
 
 
-                                <!-- CARD -->
-
-                                <label
-                                    class="payment-option"
-                                    for="cardPayment"
-                                >
-
-                                    <input
-                                        type="radio"
-                                        id="cardPayment"
-                                        name="paymentMethod"
-                                        value="card"
-                                    >
-
-                                    <div>
-
-                                        <strong>
-                                            Card Payment
-                                        </strong>
-
-                                        <p>
-                                            Pay securely using a
-                                            debit or credit card.
-                                        </p>
-
-                                    </div>
-
-                                </label>
-
-
+<p>Sandbox checkout — no real money moves. Choose a simulated outcome on the next page. Do not enter real card or banking details.</p>
                                 <!-- EFT -->
 
                                 <label
@@ -359,19 +332,17 @@ $lastName = count($nameParts) > 1
                                         type="radio"
                                         id="eftPayment"
                                         name="paymentMethod"
-                                        value="eft"
+                                        value="demo" required checked
                                     >
 
                                     <div>
 
                                         <strong>
-                                            EFT / Bank Transfer
+                                            Local payment simulator
                                         </strong>
 
                                         <p>
-                                            Make a bank transfer
-                                            using the provided
-                                            payment details.
+                                            Use explicit demo controls for success, decline, or cancellation.
                                         </p>
 
                                     </div>
@@ -386,114 +357,12 @@ $lastName = count($nameParts) > 1
                                  ============================== -->
 
                             <div
-                                id="cardDetails"
-                                class="payment-details"
-                                style="display: none;"
-                            >
-
-                                <h3>
-                                    Card Details
-                                </h3>
-
-
-                                <div class="mb-4">
-
-                                    <label for="cardName">
-                                        Cardholder Name
-                                    </label>
-
-                                    <input
-                                        type="text"
-                                        id="cardName"
-                                        class="form-control"
-                                    >
-
-                                </div>
-
-
-                                <div class="mb-4">
-
-                                    <label for="cardNumber">
-                                        Card Number
-                                    </label>
-
-                                    <input
-                                        type="text"
-                                        id="cardNumber"
-                                        class="form-control"
-                                        maxlength="19"
-                                        placeholder="1234 5678 9012 3456"
-                                    >
-
-                                </div>
-
-
-                                <div class="row">
-
-                                    <div class="col-md-6 mb-4">
-
-                                        <label for="expiryDate">
-                                            Expiry Date
-                                        </label>
-
-                                        <input
-                                            type="text"
-                                            id="expiryDate"
-                                            class="form-control"
-                                            placeholder="MM/YY"
-                                            maxlength="5"
-                                        >
-
-                                    </div>
-
-
-                                    <div class="col-md-6 mb-4">
-
-                                        <label for="cvv">
-                                            CVV
-                                        </label>
-
-                                        <input
-                                            type="password"
-                                            id="cvv"
-                                            class="form-control"
-                                            maxlength="4"
-                                            placeholder="123"
-                                        >
-
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-
-                            <!-- ==============================
-                                 EFT DETAILS
-                                 ============================== -->
-
-                            <div
                                 id="eftDetails"
                                 class="payment-details"
                                 style="display: none;"
                             >
 
-                                <h3>
-                                    EFT Payment Instructions
-                                </h3>
-
-                                <p>
-                                    After placing your order,
-                                    TE_Crown Hair will provide
-                                    the bank transfer details
-                                    required to complete payment.
-                                </p>
-
-                                <p>
-                                    Your order will be processed
-                                    after payment confirmation.
-                                </p>
-
+<h3>Demo payment</h3><p>Your order is saved first. The next screen lets you simulate payment without entering financial details. No real payment will be processed.</p>
                             </div>
 
 
@@ -557,7 +426,7 @@ $lastName = count($nameParts) > 1
                             </span>
 
                             <span>
-                                Calculated
+                                Included (R0.00)
                             </span>
 
                         </div>

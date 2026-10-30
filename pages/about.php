@@ -42,9 +42,7 @@ include '../includes/navbar.php';
 
                 <div class="col-lg-6">
 
-                    <div class="about-image">
-                        TE_CROWN HAIR
-                    </div>
+                    <div class="about-image"><img src="../assets/images/logo/logo.png" alt="TE_Crown Hair logo"></div>
 
                 </div>
 

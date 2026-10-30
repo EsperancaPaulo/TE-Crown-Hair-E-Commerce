@@ -1,6 +1,6 @@
 <?php
 
-session_start();
+require_once '../includes/auth.php';
 
 require_once '../includes/db.php';
 require_once '../includes/mail.php';
@@ -19,6 +19,7 @@ if (isset($_SESSION["user_id"])) {
 }
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    checkCsrf();
 
     $name = trim($_POST["name"] ?? "");
     $email = trim($_POST["email"] ?? "");
@@ -30,6 +31,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $message = "Please complete all required fields.";
         $messageType = "error";
 
+    } elseif (strlen($name)>100 || strlen($email)>150 || strlen($password)>72) {
+        $message="Name, email or password is too long."; $messageType="error";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 
         $message = "Please enter a valid email address.";
@@ -119,7 +122,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             if ($stmt->execute()) {
 
                 $verificationLink =
-                    "http://localhost:8001/pages/verify-email.php?token="
+                    rtrim(getenv("APP_URL") ?: ($env["APP_URL"] ?? "http://localhost:8001"), "/") . "/pages/verify-email.php?token="
                     . urlencode($verificationToken);
 
                 $emailResult = sendVerificationEmail(
@@ -191,7 +194,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 method="POST"
                 class="auth-form"
                 novalidate
-            >
+            ><?php echo csrfField(); ?>
 
                 <div class="form-group">
 

@@ -156,7 +156,7 @@ $productCategorySlug =
                         <?php if (!empty($productImage)): ?>
 
                             <img
-                                src="../assets/images/products/<?php echo htmlspecialchars($productImage); ?>"
+                                src="<?php echo htmlspecialchars(productImageUrl($productImage)); ?>"
                                 alt="<?php echo htmlspecialchars($productName); ?>"
                                 class="product-main-image"
                             >
@@ -484,15 +484,15 @@ const productData = {
 
     id: <?php echo (int) $product['id']; ?>,
 
-    name: <?php echo json_encode($productName); ?>,
+    name: <?php echo json_encode($productName, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
 
     price: <?php echo $productPrice; ?>,
 
-    category: <?php echo json_encode($productCategorySlug); ?>,
+    category: <?php echo json_encode($productCategorySlug, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
 
     stock: <?php echo $productStock; ?>,
 
-    image: <?php echo json_encode($productImage); ?>
+    image: <?php echo json_encode($productImage, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>
 
 };
 
@@ -630,11 +630,7 @@ function selectLength(button) {
 
 function getCart() {
 
-    return JSON.parse(
-        localStorage.getItem(
-            "teCrownCart"
-        )
-    ) || [];
+    return readShopCart();
 
 }
 
@@ -721,6 +717,7 @@ function addProductToCart() {
         category: productData.category,
 
         image: productData.image,
+        stock: productData.stock,
 
         colour:
             productData.category === "wigs"

@@ -1,90 +1,9 @@
 <?php
-include '../includes/header.php';
-include '../includes/navbar.php';
+require_once '../includes/auth.php'; requireCustomer(); require_once '../includes/db.php'; require_once '../includes/order-view.php';
+$id=(int)($_GET['id']??0);$s=$conn->prepare('SELECT * FROM orders WHERE id=? AND user_id=?');$s->bind_param('ii',$id,$_SESSION['user_id']);$s->execute();$o=$s->get_result()->fetch_assoc();
+if (!$o) { http_response_code(404); exit('Order not found. <a href="account.php">My account</a>'); }
+include '../includes/header.php'; include '../includes/navbar.php';
 ?>
-
-<main>
-
-    <!-- ==============================
-         ORDER CONFIRMATION
-         ============================== -->
-
-    <section class="confirmation-section">
-
-        <div class="container">
-
-            <div class="confirmation-box">
-
-                <div class="confirmation-icon">
-                    ✓
-                </div>
-
-                <p class="section-label">
-                    TE_CROWN HAIR
-                </p>
-
-                <h1>
-                    Order Confirmed!
-                </h1>
-
-                <p class="confirmation-message">
-                    Thank you for shopping with TE_Crown Hair.
-                    Your order has been received successfully.
-                </p>
-
-                <div class="order-number">
-
-                    <span>
-                        Order Number
-                    </span>
-
-                    <strong>
-                        #TC1001
-                    </strong>
-
-                </div>
-
-
-                <div class="confirmation-details">
-
-                    <h2>
-                        What's Next?
-                    </h2>
-
-                    <p>
-                        We will process your order and contact you
-                        with further delivery information.
-                    </p>
-
-                </div>
-
-
-                <div class="confirmation-actions">
-
-                    <a
-                        href="shop.php"
-                        class="confirmation-button"
-                    >
-                        CONTINUE SHOPPING
-                    </a>
-
-                    <a
-                        href="account.php"
-                        class="confirmation-secondary"
-                    >
-                        VIEW MY ACCOUNT
-                    </a>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </section>
-
-</main>
-
-<?php
-include '../includes/footer.php';
-?>
+<main class="container py-5"><div class="account-card"><h1>Order #TC<?php echo $id; ?></h1><p>Order <?php echo e($o['order_status']); ?>. Payment <?php echo e($o['payment_status']); ?>.</p><?php if (isDemoOrder($conn,$id)): demoHistory($conn,$id); if ($o['payment_status']!=='paid' && $o['order_status']==='pending'): ?><p><a class="product-button" href="demo-payment.php?id=<?php echo $id; ?>">Continue / retry demo payment</a></p><?php endif; else: ?><p>Payment details are arranged with TE_Crown Hair.</p><?php endif; ?>
+<?php foreach (orderItems($conn,$id) as $item): ?><p><?php echo e($item['name'].' '.$item['colour'].' '.$item['length']); ?> × <?php echo (int)$item['quantity']; ?> — R<?php echo number_format($item['price']*$item['quantity'],2); ?></p><?php endforeach; ?>
+<p><strong>Total: R<?php echo number_format($o['total_amount'],2); ?></strong></p><a href="account.php">My account</a> · <a href="shop.php">Continue shopping</a></div></main><?php include '../includes/footer.php'; ?>

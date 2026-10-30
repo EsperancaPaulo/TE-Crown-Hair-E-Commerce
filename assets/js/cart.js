@@ -12,8 +12,8 @@ function formatCurrency(amount) {
     return "R" + amount.toLocaleString(
         "en-ZA",
         {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
         }
     );
 
@@ -26,9 +26,7 @@ function formatCurrency(amount) {
 
 function getCart() {
 
-    return JSON.parse(
-        localStorage.getItem("teCrownCart")
-    ) || [];
+    return readShopCart();
 
 }
 
@@ -82,7 +80,7 @@ function getProductImage(item) {
     };
 
 
-    return images[item.name] || null;
+    return item.image ? "../assets/images/products/" + item.image : (images[item.name] || null);
 
 }
 
@@ -166,8 +164,8 @@ function displayCart() {
             imageHTML = `
 
                 <img
-                    src="${productImage}"
-                    alt="${item.name}"
+                    src="${productImage}" onerror="this.onerror=null;this.src='/assets/images/logo/logo.png';"
+                    alt="${escapeShopHtml(item.name)}"
                 >
 
             `;
@@ -178,7 +176,7 @@ function displayCart() {
 
                 <span>
                     ${item.category
-                        ? item.category.toUpperCase()
+                        ? escapeShopHtml(item.category.toUpperCase())
                         : "PRODUCT"
                     }
                 </span>
@@ -202,7 +200,7 @@ function displayCart() {
                 <p class="cart-item-option">
 
                     <strong>Colour:</strong>
-                    ${item.colour}
+                    ${escapeShopHtml(item.colour)}
 
                 </p>
 
@@ -218,7 +216,7 @@ function displayCart() {
                 <p class="cart-item-option">
 
                     <strong>Length:</strong>
-                    ${item.length}"
+                    ${escapeShopHtml(item.length)}"
 
                 </p>
 
@@ -246,7 +244,7 @@ function displayCart() {
 
                     ${
                         item.category
-                            ? item.category.toUpperCase()
+                            ? escapeShopHtml(item.category.toUpperCase())
                             : "PRODUCT"
                     }
 
@@ -254,7 +252,7 @@ function displayCart() {
 
 
                 <h3>
-                    ${item.name}
+                    ${escapeShopHtml(item.name)}
                 </h3>
 
 
@@ -293,9 +291,10 @@ function displayCart() {
 
                 <input
                     type="number"
+                    aria-label="Quantity"
                     value="${item.quantity}"
                     min="1"
-                    max="10"
+                    max="${Math.max(1,Number(item.stock)||999)}"
                     onchange="changeCartQuantity(
                         ${index},
                         this.value
@@ -350,7 +349,7 @@ function increaseCartQuantity(index) {
 
 
     if (
-        cart[index].quantity < 10
+        cart[index].quantity < (Number(cart[index].stock)||999)
     ) {
 
         cart[index].quantity++;
@@ -418,9 +417,9 @@ function changeCartQuantity(
     }
 
 
-    if (quantity > 10) {
+    if (quantity > (Number(cart[index].stock)||999)) {
 
-        quantity = 10;
+        quantity = Number(cart[index].stock)||999;
 
     }
 

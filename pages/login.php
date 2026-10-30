@@ -1,6 +1,6 @@
 <?php
 
-session_start();
+require_once '../includes/auth.php';
 
 require_once '../includes/db.php';
 
@@ -17,11 +17,12 @@ if (isset($_SESSION["user_id"])) {
         exit;
     }
 
-    header("Location: account.php");
+    $destination=($_SESSION["after_login"] ?? "") === "checkout.php" ? "checkout.php" : "account.php"; unset($_SESSION["after_login"]); header("Location: ".$destination);
     exit;
 }
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    checkCsrf();
 
     $email = trim($_POST["email"] ?? "");
     $password = $_POST["password"] ?? "";
@@ -37,6 +38,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $messageType = "error";
 
     } else {
+        // Throttle by email and remote address; only a hash is persisted.
+        $bucket=hash('sha256',strtolower($email).'|'.($_SERVER['REMOTE_ADDR'] ?? ''));
+        $attempt=$conn->prepare("INSERT INTO auth_attempts(bucket,attempts,started_at) VALUES (?,1,UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE attempts=IF(started_at < DATE_SUB(UTC_TIMESTAMP(),INTERVAL 15 MINUTE),1,LEAST(attempts+1,100000)), started_at=IF(started_at < DATE_SUB(UTC_TIMESTAMP(),INTERVAL 15 MINUTE),UTC_TIMESTAMP(),started_at)");
+        $attempt->bind_param('s',$bucket);$attempt->execute();
+        $attempt=$conn->prepare('SELECT attempts FROM auth_attempts WHERE bucket=?');$attempt->bind_param('s',$bucket);$attempt->execute();
+        if (($attempt->get_result()->fetch_assoc()['attempts'] ?? 11)>10) { http_response_code(429); exit('Too many sign-in attempts. Please wait 15 minutes and try again.'); }
 
         $stmt = $conn->prepare(
             "SELECT
@@ -45,7 +52,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 email,
                 password,
                 role,
-                email_verified
+                email_verified, is_active
              FROM users
              WHERE email = ?
              LIMIT 1"
@@ -67,6 +74,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                 $messageType = "error";
 
+            } elseif (!(int)$user["is_active"]) {
+                $message = "This account is inactive. Please contact the shop."; $messageType = "error";
             } elseif ((int)$user["email_verified"] !== 1) {
 
                 $message =
@@ -76,6 +85,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             } else {
 
+                $clear=$conn->prepare('DELETE FROM auth_attempts WHERE bucket=?');$clear->bind_param('s',$bucket);$clear->execute();
                 session_regenerate_id(true);
 
                 $_SESSION["user_id"] = $user["id"];
@@ -92,7 +102,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     exit;
                 }
 
-                header("Location: account.php");
+                $destination=($_SESSION["after_login"] ?? "") === "checkout.php" ? "checkout.php" : "account.php"; unset($_SESSION["after_login"]); header("Location: ".$destination);
                 exit;
             }
 
@@ -142,7 +152,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             <form
                 method="POST"
                 class="auth-form"
-            >
+            ><?php echo csrfField(); ?>
 
                 <div class="form-group">
 

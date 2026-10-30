@@ -118,7 +118,7 @@ include '../includes/navbar.php';
                             </span>
 
                             <span>
-                                Calculated at checkout
+                                Included (R0.00)
                             </span>
 
                         </div>

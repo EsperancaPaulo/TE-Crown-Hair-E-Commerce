@@ -1,6 +1,6 @@
 <?php
 
-session_start();
+require_once '../includes/auth.php';
 
 require_once '../includes/db.php';
 
@@ -37,7 +37,7 @@ if ($token === "") {
         if ($expires === false || $expires < time()) {
 
             $message =
-                "This verification link has expired. Please register again or request a new verification email.";
+                "This verification link has expired. Please contact the shop for a new verification email.";
 
         } else {
 

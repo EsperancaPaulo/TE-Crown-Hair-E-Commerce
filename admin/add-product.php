@@ -9,6 +9,7 @@ require_once '../includes/db.php';
 $message = "";
 $messageType = "";
 
+
 /*
 |--------------------------------------------------------------------------
 | Handle Product Submission
@@ -16,13 +17,16 @@ $messageType = "";
 */
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    checkCsrf();
 
     $productName = trim($_POST["productName"] ?? "");
-    $categoryId = intval($_POST["category"]);
+    $categoryId = intval($_POST["category"] ?? 0);
     $description = trim($_POST["description"] ?? "");
     $price = floatval($_POST["price"] ?? 0);
     $stock = intval($_POST["stock"] ?? 0);
     $status = $_POST["status"] ?? "active";
+
+    $categoryCheck=$conn->prepare('SELECT id FROM categories WHERE id=?'); $categoryCheck->bind_param('i',$categoryId); $categoryCheck->execute(); if (!$categoryCheck->get_result()->num_rows) $categoryId=0;
 
     /*
     |--------------------------------------------------------------------------
@@ -33,8 +37,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if (
         $productName === "" ||
         $categoryId <= 0 ||
-        $price <= 0 ||
-        $stock < 0
+        $price <= 0 || !preg_match('/^\d{1,8}(?:\.\d{1,2})?$/', (string)($_POST['price'] ?? '')) ||
+        $stock < 0 || !in_array($status, ['active','inactive'], true) || strlen($productName)>150 || !preg_match('/^\d+$/', (string)($_POST['stock'] ?? ''))
     ) {
 
         $message = "Please complete all required fields correctly.";
@@ -50,70 +54,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         $imageName = null;
 
-        if (
-            isset($_FILES["productImage"]) &&
-            $_FILES["productImage"]["error"] === UPLOAD_ERR_OK
-        ) {
-
-            $uploadDirectory =
-                "../assets/images/products/";
-
-            $originalName =
-                $_FILES["productImage"]["name"];
-
-            $temporaryFile =
-                $_FILES["productImage"]["tmp_name"];
-
-            $fileExtension =
-                strtolower(
-                    pathinfo(
-                        $originalName,
-                        PATHINFO_EXTENSION
-                    )
-                );
-
-            $allowedExtensions = [
-                "jpg",
-                "jpeg",
-                "png",
-                "webp"
-            ];
-
-            if (
-                in_array(
-                    $fileExtension,
-                    $allowedExtensions
-                )
-            ) {
-
-                $imageName =
-                    strtolower(
-                        preg_replace(
-                            "/[^a-zA-Z0-9-_\.]/",
-                            "-",
-                            $originalName
-                        )
-                    );
-
-                $destination =
-                    $uploadDirectory . $imageName;
-
-                move_uploaded_file(
-                    $temporaryFile,
-                    $destination
-                );
-
-            } else {
-
-                $message =
-                    "Invalid image format. Please upload JPG, JPEG, PNG or WEBP.";
-
-                $messageType = "error";
-
-            }
-
-        }
-
+        require_once '../includes/upload.php';
+        try { $imageName = productUpload($_FILES['productImage'] ?? null, $imageName); }
+        catch (RuntimeException $e) { $message=$e->getMessage(); $messageType='error'; }
 
         /*
         |--------------------------------------------------------------------------
@@ -292,7 +235,7 @@ $categories = $conn->query(
 
 
             <a
-                href="#"
+                href="../pages/logout.php"
                 class="admin-nav-link admin-logout"
             >
                 <span>↪</span>
@@ -374,7 +317,7 @@ $categories = $conn->query(
                 method="POST"
                 enctype="multipart/form-data"
                 class="admin-product-form"
-            >
+            ><?php echo csrfField(); ?>
 
                 <!-- PRODUCT NAME -->
 

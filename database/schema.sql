@@ -21,6 +21,10 @@ CREATE TABLE users (
     password VARCHAR(255) NOT NULL,
 
     role ENUM('customer', 'admin') NOT NULL DEFAULT 'customer',
+    email_verified TINYINT(1) NOT NULL DEFAULT 0,
+    verification_token VARCHAR(64) NULL,
+    verification_expires DATETIME NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

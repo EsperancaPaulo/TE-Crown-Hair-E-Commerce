@@ -1,0 +1,6 @@
+Options -Indexes
+<FilesMatch "(?i)^(\.|composer\.|.*\.(sql|log|lock|md)$|test-email\.php$)">
+ Require all denied
+</FilesMatch>
+RewriteEngine On
+RewriteRule ^(?:includes|database|vendor|tests)(?:/|$) - [F,L]

@@ -9,9 +9,7 @@
 
 function getCart() {
 
-    return JSON.parse(
-        localStorage.getItem("teCrownCart")
-    ) || [];
+    return readShopCart();
 
 }
 
@@ -78,7 +76,7 @@ function addToCart(button) {
 
     if (existingProduct) {
 
-        if (existingProduct.quantity < 10) {
+        if (existingProduct.quantity < Number(productCard.dataset.stock)) {
 
             existingProduct.quantity++;
 
@@ -88,6 +86,9 @@ function addToCart(button) {
 
         cart.push({
 
+            id: Number(productCard.dataset.id),
+            image: productCard.dataset.image,
+            stock: Number(productCard.dataset.stock),
             name: productName,
 
             price: price,
@@ -195,7 +196,7 @@ function showCartConfirmation(productName) {
     notification.innerHTML =
         "✓ Added to Cart<br>" +
         "<strong>" +
-        productName +
+        escapeShopHtml(productName) +
         "</strong>";
 
 

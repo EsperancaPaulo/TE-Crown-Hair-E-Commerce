@@ -17,6 +17,7 @@ $messageType = "";
 */
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    checkCsrf();
 
     $action = $_POST["action"] ?? "";
     $productId = intval($_POST["productId"] ?? 0);
@@ -212,7 +213,7 @@ $result = $conn->query($sql);
 
 
             <a
-                href="#"
+                href="../pages/logout.php"
                 class="admin-nav-link admin-logout"
             >
                 <span>↪</span>
@@ -522,7 +523,7 @@ $result = $conn->query($sql);
                                                 method="POST"
                                                 style="display:inline;"
                                                 onsubmit="return confirm('Are you sure you want to deactivate this product?');"
-                                            >
+                                            ><?php echo csrfField(); ?>
 
                                                 <input
                                                     type="hidden"

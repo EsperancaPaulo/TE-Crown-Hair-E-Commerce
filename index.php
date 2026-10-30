@@ -1,4 +1,5 @@
 <?php
+require_once 'includes/db.php';
 include 'includes/header.php';
 include 'includes/navbar.php';
 ?>
@@ -100,128 +101,9 @@ include 'includes/navbar.php';
 
             <div class="row g-4">
 
-                <!-- Product 1 -->
-                <div class="col-lg-3 col-md-6">
-
-                    <div class="product-card">
-
-                        <div class="product-image">
-    <img
-        src="assets/images/products/straight-lace-wig.png"
-        alt="Straight Lace Wig"
-    >
-</div>
-
-                        <div class="product-info">
-
-                            <h4>Straight Lace Wig</h4>
-
-                            <p class="product-price">
-                                R2,300
-                            </p>
-
-                            <a href="pages/shop.php" class="product-button">
-                                VIEW PRODUCT
-                            </a>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <!-- Product 2 -->
-                <div class="col-lg-3 col-md-6">
-
-                    <div class="product-card">
-
-                        <div class="product-image">
-    <img
-        src="assets/images/products/body-wave-wig.png"
-        alt="Body Wave Wig"
-    >
-</div>
-
-                        <div class="product-info">
-
-                            <h4>Body Wave Wig</h4>
-
-                            <p class="product-price">
-                                R2,500
-                            </p>
-
-                            <a href="pages/shop.php" class="product-button">
-                                VIEW PRODUCT
-                            </a>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <!-- Product 3 -->
-                <div class="col-lg-3 col-md-6">
-
-                    <div class="product-card">
-
-                       <div class="product-image">
-    <img
-        src="assets/images/products/deep-wave-wig.png"
-        alt="Deep Wave Wig"
-    >
-</div>
-
-                        <div class="product-info">
-
-                            <h4>Deep Wave Wig</h4>
-
-                            <p class="product-price">
-                                R2,200
-                            </p>
-
-                            <a href="pages/shop.php" class="product-button">
-                                VIEW PRODUCT
-                            </a>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <!-- Product 4 -->
-                <div class="col-lg-3 col-md-6">
-
-                    <div class="product-card">
-
-                       <div class="product-image">
-    <img
-        src="assets/images/products/premium-hair-extensions.png"
-        alt="Premium Hair Extensions"
-    >
-</div>
-
-                        <div class="product-info">
-
-                            <h4>Premium Hair Extensions</h4>
-
-                            <p class="product-price">
-                                R1,200
-                            </p>
-
-                            <a href="pages/shop.php" class="product-button">
-                                VIEW PRODUCT
-                            </a>
-
-                        </div>
-
-                    </div>
-
-                </div>
+<?php foreach ($conn->query("SELECT id,name,price,image FROM products WHERE status='active' ORDER BY id LIMIT 4") as $p): ?>
+<div class="col-lg-3 col-md-6"><div class="product-card"><div class="product-image"><img src="<?php echo htmlspecialchars(productImageUrl($p['image'])); ?>" alt="<?php echo htmlspecialchars($p['name']); ?>" loading="lazy"></div><div class="product-info"><h3><?php echo htmlspecialchars($p['name']); ?></h3><p class="product-price">R<?php echo number_format($p['price'],2); ?></p><a href="pages/product.php?id=<?php echo (int)$p['id']; ?>" class="product-button">VIEW PRODUCT</a></div></div></div>
+<?php endforeach; ?>
 
             </div>
 

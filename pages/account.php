@@ -1,199 +1,88 @@
 <?php
+require_once '../includes/auth.php';
+requireCustomer();
+require_once '../includes/db.php';
+require_once '../includes/order-view.php';
 
-session_start();
-
-// Only logged-in users can access the account page
-if (!isset($_SESSION["user_id"])) {
-    header("Location: login.php");
-    exit;
-}
+$stmt = $conn->prepare('SELECT * FROM orders WHERE user_id=? ORDER BY id DESC');
+$stmt->bind_param('i', $_SESSION['user_id']);
+$stmt->execute();
+$orders = $stmt->get_result();
+$orderCount = $orders->num_rows;
 
 include '../includes/header.php';
 include '../includes/navbar.php';
-
 ?>
-
-<main>
-
-    <!-- ==============================
-         ACCOUNT HEADER
-         ============================== -->
-
-    <section class="account-header">
-
-        <div class="container text-center">
-
-            <p class="section-label">
-                TE_CROWN HAIR
-            </p>
-
-            <h1>My Account</h1>
-
-            <p>
-                Manage your account and view your orders.
-            </p>
-
-        </div>
-
-    </section>
-
-
-    <!-- ==============================
-         ACCOUNT
-         ============================== -->
-
-    <section class="account-section">
-
-        <div class="container">
-
-            <div class="row g-5">
-
-                <!-- ACCOUNT DETAILS -->
-
-                <div class="col-lg-4">
-
-                    <div class="account-card">
-
-                        <h2>Account Details</h2>
-
-                        <div class="account-detail">
-
-                            <span>Name</span>
-
-                            <strong>
-                                <?php echo htmlspecialchars($_SESSION["user_name"]); ?>
-                            </strong>
-
-                        </div>
-
-
-                        <div class="account-detail">
-
-                            <span>Email</span>
-
-                            <strong>
-                                <?php echo htmlspecialchars($_SESSION["user_email"]); ?>
-                            </strong>
-
-                        </div>
-
-
-
-
-                        <!-- REAL LOGOUT -->
-
-                        <a
-                            href="logout.php"
-                            class="logout-button"
-                        >
-                            LOGOUT
-                        </a>
-
-                    </div>
-
-                </div>
-
-
-                <!-- ORDER HISTORY -->
-
-                <div class="col-lg-8">
-
-                    <div class="account-card">
-
-                        <div class="account-title-row">
-
-                            <h2>Order History</h2>
-
-                            <span>
-                                2 Orders
-                            </span>
-
-                        </div>
-
-
-                        <!-- ORDER 1 -->
-
-                        <div class="order-history-item">
-
-                            <div>
-
-                                <span class="order-label">
-                                    ORDER #TC1001
-                                </span>
-
-                                <h3>
-                                    Straight Lace Wig
-                                </h3>
-
-                                <p>
-                                    29 September 2026
-                                </p>
-
-                            </div>
-
-
-                            <div class="order-info">
-
-                                <strong>
-                                    R2,300
-                                </strong>
-
-                                <span class="order-status">
-                                    Processing
-                                </span>
-
-                            </div>
-
-                        </div>
-
-
-                        <!-- ORDER 2 -->
-
-                        <div class="order-history-item">
-
-                            <div>
-
-                                <span class="order-label">
-                                    ORDER #TC1000
-                                </span>
-
-                                <h3>
-                                    Premium Hair Extensions
-                                </h3>
-
-                                <p>
-                                    20 September 2026
-                                </p>
-
-                            </div>
-
-
-                            <div class="order-info">
-
-                                <strong>
-                                    R1,200
-                                </strong>
-
-                                <span class="order-status completed">
-                                    Completed
-                                </span>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
+<main class="customer-account">
+    <div class="container account-dashboard">
+        <header class="account-welcome">
+            <div>
+                <p class="account-eyebrow">YOUR PERSONAL SPACE</p>
+                <h1>My account</h1>
+                <p>Welcome back, <strong><?php echo e($_SESSION['user_name']); ?></strong>.<br>Keep track of your orders and find your next favourite.</p>
             </div>
+            <a class="account-action account-action-primary" href="shop.php">Continue shopping <span aria-hidden="true">↗</span></a>
+        </header>
 
+        <div class="account-dashboard-grid">
+            <aside class="account-profile-panel" aria-labelledby="profileHeading">
+                <div class="account-profile-intro">
+                    <span class="account-profile-mark" aria-hidden="true">♕</span>
+                    <p class="account-eyebrow">CUSTOMER PROFILE</p>
+                    <h2 id="profileHeading"><?php echo e($_SESSION['user_name']); ?></h2>
+                    <span class="account-verified"><span aria-hidden="true">✓</span> Email verified</span>
+                </div>
+                <dl class="account-profile-details">
+                    <div><dt>Full name</dt><dd><?php echo e($_SESSION['user_name']); ?></dd></div>
+                    <div><dt>Email address</dt><dd><?php echo e($_SESSION['user_email']); ?></dd></div>
+                </dl>
+                <a class="account-action account-action-secondary" href="cart.php">View my cart <span aria-hidden="true">→</span></a>
+                <div class="account-signout">
+                    <p>Finished for now?</p>
+                    <form action="logout.php" method="post">
+                        <?php echo csrfField(); ?>
+                        <button type="submit" class="account-action account-action-logout">Log out <span aria-hidden="true">↗</span></button>
+                    </form>
+                </div>
+            </aside>
+
+            <section class="account-orders-panel" aria-labelledby="ordersHeading">
+                <header class="account-orders-heading">
+                    <div><p class="account-eyebrow">YOUR SHOPPING JOURNEY</p><h2 id="ordersHeading">Order history</h2></div>
+                    <span class="account-order-count"><?php echo $orderCount; ?> <?php echo $orderCount === 1 ? 'order' : 'orders'; ?></span>
+                </header>
+                <?php if (!$orderCount): ?>
+                    <div class="account-empty-state">
+                        <span class="account-empty-icon" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none"><path d="M12 16h24l3 25H9l3-25Z" stroke="currentColor" stroke-width="1.8"/><path d="M18 18V12a6 6 0 0 1 12 0v6" stroke="currentColor" stroke-width="1.8"/></svg></span>
+                        <h3>Your next crown is waiting</h3>
+                        <p>Once you place your first order, you’ll find its details and progress right here.</p>
+                        <a class="account-action account-action-primary" href="shop.php">Explore the collection <span aria-hidden="true">→</span></a>
+                        <span class="account-empty-note">Wigs, extensions &amp; the finishing touches.</span>
+                    </div>
+                <?php else: ?>
+                    <div class="account-orders-list">
+                        <?php while ($order = $orders->fetch_assoc()): ?>
+                            <article class="account-order-row">
+                                <div class="account-order-main">
+                                    <p class="account-order-reference">ORDER #TC<?php echo (int)$order['id']; ?></p>
+                                    <time datetime="<?php echo e(str_replace(' ', 'T', $order['order_date']).'Z'); ?>"><?php echo e((new DateTimeImmutable($order['order_date'], new DateTimeZone('UTC')))->setTimezone(new DateTimeZone('Africa/Johannesburg'))->format('d M Y')); ?></time>
+                                    <?php if (isDemoOrder($conn, $order['id'])): ?><span class="account-demo-label">Sandbox / demo · no real payment</span><?php endif; ?>
+                                </div>
+                                <div class="account-order-progress">
+                                    <span class="account-status status-<?php echo e($order['order_status']); ?>"><?php echo e(ucfirst($order['order_status'])); ?></span>
+                                    <span class="account-payment-label">Payment <?php echo e($order['payment_status']); ?></span>
+                                </div>
+                                <div class="account-order-end">
+                                    <strong>R<?php echo number_format($order['total_amount'], 2); ?></strong>
+                                    <a class="account-order-link" href="order-confirmation.php?id=<?php echo (int)$order['id']; ?>" aria-label="View order TC<?php echo (int)$order['id']; ?>">View details <span aria-hidden="true">→</span></a>
+                                </div>
+                            </article>
+                        <?php endwhile; ?>
+                    </div>
+                <?php endif; ?>
+            </section>
         </div>
-
-    </section>
-
+        <p class="account-help-note">A little help with your crown? <a href="contact.php">Get in touch with us</a>.</p>
+    </div>
 </main>
-
-<?php
-include '../includes/footer.php';
-?>
+<?php include '../includes/footer.php'; ?>
