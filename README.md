@@ -10,8 +10,10 @@ A database-driven storefront and administration system for TE Crown Hair, a hair
 
 Customers can browse products, manage a cart, place demonstration orders and track private enquiries. Administrators manage the catalogue, inventory, customer access, orders and enquiry responses through a shared workspace.
 
-**Status:** Local implementation and automated regression checks completed; hosted verification pending.  
-**Public website:** To be added after deployment.  
+**Status:** Local implementation and automated regression checks completed; hosted verification pending.
+
+**Public website:** To be added after deployment.
+
 **Payments:** Test mode only. No real funds are collected.
 
 [Features](#features) · [Local setup](#local-setup) · [Demo payments](#demo-payments) · [Testing](#testing) · [Hosting](#hosting) · [Current limitations](#current-limitations)
