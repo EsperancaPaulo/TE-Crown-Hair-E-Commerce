@@ -157,4 +157,24 @@ function sendVerificationEmail(
     }
 }
 
-?>
+
+function sendPasswordResetEmail($recipientEmail,$recipientName,$resetLink) {
+    $settings=loadBrevoEnvironment();
+    $apiKey=getenv('BREVO_API_KEY') ?: ($settings['BREVO_API_KEY'] ?? '');
+    $sender=getenv('BREVO_SENDER_EMAIL') ?: ($settings['BREVO_SENDER_EMAIL'] ?? '');
+    $senderName=getenv('BREVO_SENDER_NAME') ?: ($settings['BREVO_SENDER_NAME'] ?? 'TE_Crown Hair');
+    if ($apiKey==='' || !filter_var($sender,FILTER_VALIDATE_EMAIL)) return false;
+    try {
+        $client=new Brevo(apiKey:$apiKey);
+        $name=htmlspecialchars($recipientName,ENT_QUOTES,'UTF-8');
+        $url=htmlspecialchars($resetLink,ENT_QUOTES,'UTF-8');
+        $request=new SendTransacEmailRequest([
+            'subject'=>'Reset your TE_Crown Hair password',
+            'htmlContent'=>"<div style='font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:32px;background:#faf5ef;color:#513b2b'><h2>Reset your password</h2><p>Hello {$name},</p><p>We received a password reset request for your TE_Crown Hair account.</p><p><a href='{$url}' style='display:inline-block;background:#71523f;color:#fff;padding:14px 22px;text-decoration:none'>Choose a new password</a></p><p>This link expires in 30 minutes and can be used once. Only the newest link works.</p><p>If you did not request this, ignore this email. Your password has not changed.</p><p>TE_Crown Hair</p></div>",
+            'sender'=>new SendTransacEmailRequestSender(['name'=>$senderName,'email'=>$sender]),
+            'to'=>[new SendTransacEmailRequestToItem(['email'=>$recipientEmail,'name'=>$recipientName])]
+        ]);
+        $client->transactionalEmails->sendTransacEmail($request,['timeout'=>12.0,'maxRetries'=>0]);
+        return true;
+    } catch (Throwable $exception) {return false;}
+}

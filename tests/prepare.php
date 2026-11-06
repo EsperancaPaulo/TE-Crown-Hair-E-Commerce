@@ -1,6 +1,6 @@
 <?php
 // Fictional fixtures only. Explicit opt-in and dedicated database required.
-if (PHP_SAPI !== 'cli' || getenv('SHOP_TEST_SETUP') !== '1' || getenv('DB_NAME') !== 'te_crown_repair_test') exit("Set SHOP_TEST_SETUP=1 DB_NAME=te_crown_repair_test; use an empty test database.\n");
+if (PHP_SAPI !== 'cli' || getenv('SHOP_TEST_SETUP') !== '1' || !in_array(getenv('DB_NAME'), ['te_crown_repair_test','te_crown_payment_test'], true)) exit("Set SHOP_TEST_SETUP=1 DB_NAME=te_crown_repair_test; use an empty test database.\n");
 require __DIR__.'/../includes/db.php';
 if ($conn->query('SHOW TABLES')->num_rows) exit("Test database must be empty.\n");
 mysqli_report(MYSQLI_REPORT_ERROR|MYSQLI_REPORT_STRICT);

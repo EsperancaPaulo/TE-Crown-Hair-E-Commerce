@@ -67,7 +67,7 @@ $lastName = count($nameParts) > 1
 
                         <form id="checkoutForm" method="post" action="process-order.php"><?php echo csrfField(); ?>
 <input type="hidden" name="request_key" value="<?php echo bin2hex(random_bytes(32)); ?>">
-<p id="checkoutMessage" role="status" aria-live="polite"></p>
+
 
                             <!-- CUSTOMER INFORMATION -->
 
@@ -320,7 +320,7 @@ $lastName = count($nameParts) > 1
                             <div class="payment-methods">
 
 
-<p>Sandbox checkout — no real money moves. Choose a simulated outcome on the next page. Do not enter real card or banking details.</p>
+<p>Sandbox checkout — no real money moves. Use a demo card on the next page. Do not enter real card or banking details.</p>
                                 <!-- EFT -->
 
                                 <label
@@ -338,11 +338,11 @@ $lastName = count($nameParts) > 1
                                     <div>
 
                                         <strong>
-                                            Local payment simulator
+                                            Local sandbox card checkout
                                         </strong>
 
                                         <p>
-                                            Use explicit demo controls for success, decline, or cancellation.
+                                            Use a test card for approval, pending review or decline.
                                         </p>
 
                                     </div>
@@ -362,7 +362,7 @@ $lastName = count($nameParts) > 1
                                 style="display: none;"
                             >
 
-<h3>Demo payment</h3><p>Your order is saved first. The next screen lets you simulate payment without entering financial details. No real payment will be processed.</p>
+<h3>Demo payment</h3><p>Your order is saved first. The next screen accepts demo card numbers only and offers cancellation. No real payment will be processed.</p>
                             </div>
 
 
@@ -375,6 +375,7 @@ $lastName = count($nameParts) > 1
                             >
                                 PLACE ORDER
                             </button>
+                            <p id="checkoutMessage" class="checkout-feedback" role="status" aria-live="polite" tabindex="-1"></p>
 
                         </form>
 

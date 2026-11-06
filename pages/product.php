@@ -2,8 +2,7 @@
 
 require_once '../includes/db.php';
 
-include '../includes/header.php';
-include '../includes/navbar.php';
+
 
 
 /* ==========================================
@@ -56,6 +55,8 @@ $stmt->close();
    ========================================== */
 
 if (!$product) {
+    http_response_code(404);
+    include '../includes/header.php'; include '../includes/navbar.php';
 
     ?>
 
@@ -102,6 +103,8 @@ if (!$product) {
 /* ==========================================
    PRODUCT VARIABLES
    ========================================== */
+
+include '../includes/header.php'; include '../includes/navbar.php';
 
 $productName =
     $product['name'];
@@ -397,7 +400,7 @@ $productCategorySlug =
 
                             <div class="product-option-section">
 
-                                <label>
+                                <label for="quantity">
                                     Quantity
                                 </label>
 
@@ -437,7 +440,7 @@ $productCategorySlug =
                             <button
                                 type="button"
                                 class="details-cart-button"
-                                id="detailsAddToCart"
+                                id="detailsAddToCart" aria-describedby="productCartNotice"
                             >
                                 ADD TO CART
                             </button>
@@ -455,6 +458,8 @@ $productCategorySlug =
 
                         <?php endif; ?>
 
+
+                        <p id="productCartNotice" role="status" aria-live="polite"></p>
 
                         <!-- BACK TO SHOP -->
 
@@ -653,6 +658,10 @@ function saveCart(cart) {
    ADD PRODUCT TO CART
    ========================================== */
 
+function productNotice(message) {
+    document.getElementById('productCartNotice').textContent = message;
+}
+
 function addProductToCart() {
 
     const quantityInput =
@@ -666,19 +675,15 @@ function addProductToCart() {
     }
 
 
-    let quantity =
-        parseInt(
-            quantityInput.value,
-            10
-        );
+    let quantity = Number(quantityInput.value);
 
 
     if (
-        isNaN(quantity) ||
+        !Number.isInteger(quantity) ||
         quantity < 1
     ) {
 
-        alert(
+        productNotice(
             "Please select a valid quantity."
         );
 
@@ -692,7 +697,7 @@ function addProductToCart() {
         productData.stock
     ) {
 
-        alert(
+        productNotice(
             "Only " +
             productData.stock +
             " item(s) are available."
@@ -735,6 +740,11 @@ function addProductToCart() {
 
 
     let cart = getCart();
+    const reservedInCart = cart.filter(item => Number(item.id) === productData.id).reduce((sum,item) => sum + item.quantity, 0);
+    if (reservedInCart + quantity > productData.stock) {
+        productNotice('Your cart already contains ' + reservedInCart + ' of this product. Only ' + productData.stock + ' are available across all options.');
+        return;
+    }
 
 
     /*
@@ -770,7 +780,7 @@ function addProductToCart() {
             productData.stock
         ) {
 
-            alert(
+            productNotice(
                 "You cannot add more than " +
                 productData.stock +
                 " of this product."
@@ -821,10 +831,7 @@ function addProductToCart() {
     }
 
 
-    alert(
-        productData.name +
-        " added to your cart."
-    );
+    document.getElementById("productCartNotice").textContent = productData.name + " added to your cart.";
 
 }
 

@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         if (!in_array($next,$allowed[$order['order_status']],true)) throw new InvalidArgumentException('This order cannot move to the selected status.');
         if ($order['payment_status']==='paid' && $payment!=='paid') throw new InvalidArgumentException('Paid orders require a separate refund process; payment cannot be reversed here.');
         if (in_array($next,['processing','shipped','completed'],true) && $payment!=='paid') throw new InvalidArgumentException('Confirm payment before processing this order.');
-        if ($next==='cancelled' && $order['payment_status']==='paid') throw new InvalidArgumentException('Resolve the paid order refund before cancellation.');
+        if ($next==='cancelled' && ($order['payment_status']==='paid' || $payment==='paid')) throw new InvalidArgumentException('Resolve the paid order refund before cancellation.');
         if ($order['order_status']==='cancelled' && $payment!==$order['payment_status']) throw new InvalidArgumentException('Cancelled orders cannot accept payments.');
         if ($next==='cancelled' && $order['order_status']!=='cancelled') {
             $stmt=$conn->prepare('SELECT product_id,SUM(quantity) qty FROM order_items WHERE order_id=? GROUP BY product_id ORDER BY product_id');$stmt->bind_param('i',$id);$stmt->execute();

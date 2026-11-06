@@ -3,4 +3,4 @@ Options -Indexes
  Require all denied
 </FilesMatch>
 RewriteEngine On
-RewriteRule ^(?:includes|database|vendor|tests)(?:/|$) - [F,L]
+RewriteRule ^(?:includes|database|vendor|tests|bin)(?:/|$) - [F,L]

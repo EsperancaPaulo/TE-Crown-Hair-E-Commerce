@@ -52,7 +52,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 email,
                 password,
                 role,
-                email_verified, is_active
+                email_verified, is_active, auth_version
              FROM users
              WHERE email = ?
              LIMIT 1"
@@ -93,6 +93,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $_SESSION["user_email"] = $user["email"];
                 $_SESSION["user_role"] = $user["role"];
                 $_SESSION["login_time"] = time();
+                $_SESSION["auth_version"] = (int)$user["auth_version"];
 
                 $stmt->close();
 
@@ -164,6 +165,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         type="email"
                         id="email"
                         name="email"
+                        autocomplete="username"
                         placeholder="Enter your email"
                         value="<?php echo htmlspecialchars($_POST["email"] ?? ""); ?>"
                         required
@@ -181,6 +183,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         type="password"
                         id="password"
                         name="password"
+                        autocomplete="current-password"
                         placeholder="Enter your password"
                         required
                     >
@@ -193,6 +196,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 >
                     LOGIN
                 </button>
+
+                <p class="recovery-login-link"><a href="forgot-password.php">Forgot your password?</a></p>
 
                 <p class="auth-switch">
 

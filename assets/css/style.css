@@ -4988,3 +4988,26 @@ button:disabled {opacity:.6;cursor:not-allowed;}
 .admin-primary-button,.admin-edit-button,.admin-delete-button {text-decoration:none;}
 @media(max-width:767px){.admin-sidebar{min-height:0}.admin-brand{padding:20px}.admin-brand img{width:60px;height:60px}.admin-navigation{flex-direction:row;gap:4px;padding:14px;justify-content:center}.admin-sidebar .admin-nav-link{font-size:.8rem;padding:10px}.admin-sidebar-bottom{padding:12px 20px;display:flex;gap:16px;align-items:center;justify-content:space-between}.admin-sidebar-bottom .admin-logout{margin:0;min-width:100px}.admin-topbar{margin-bottom:24px}.admin-page-label{font-size:.65rem;letter-spacing:.1em}.admin-page-header{align-items:flex-start;flex-wrap:wrap}.admin-page-header h1{font-size:1.9rem}.admin-order-info-grid,.admin-order-control-grid{grid-template-columns:minmax(0,1fr);gap:24px}.admin-order-total{justify-content:space-between}.admin-summary-strip{flex-wrap:wrap}.admin-summary-strip>div{flex-basis:130px}.admin-panel{padding:20px}.admin-delivery-list>div{grid-template-columns:80px minmax(0,1fr)}}
 @media(max-width:767px){.admin-category-list .admin-table,.admin-category-list .admin-table tbody,.admin-category-list .admin-table tr,.admin-category-list .admin-table td,.admin-order-detail .admin-table,.admin-order-detail .admin-table tbody,.admin-order-detail .admin-table tr,.admin-order-detail .admin-table td{display:block;width:100%;min-width:0}.admin-category-list .admin-table thead,.admin-order-detail .admin-table thead{display:none}.admin-category-list .admin-table tr,.admin-order-detail .admin-table tr{padding:16px 0;border-bottom:1px solid #e9dfd6}.admin-category-list .admin-table td,.admin-order-detail .admin-table td{padding:8px 0;border:0}.admin-order-detail .admin-table td[data-label]{display:flex;justify-content:space-between;gap:16px}.admin-order-detail .admin-table td[data-label]::before{content:attr(data-label);font-weight:500;color:#927c69}.admin-category-list .admin-category-actions{margin-top:6px}}
+
+/* Private password recovery. */
+.recovery-page {background:#fbf8f5;padding:56px 20px 64px;min-height:65vh;}
+.recovery-card {max-width:540px;margin:0 auto;border:1px solid #e9ddd2;background:#fffdfb;padding:36px;border-radius:10px;box-shadow:0 8px 30px #684b3610;}
+.recovery-card h1 {font-family:Georgia,'Times New Roman',serif;font-size:2rem;color:#513c2b;line-height:1.25;margin:0 0 20px;}
+.recovery-intro {font-size:.88rem;color:#806b59;line-height:1.9;margin-bottom:26px;}
+.recovery-form label {display:block;color:#674b36;font-size:.82rem;margin:20px 0 9px;font-weight:600;}
+.recovery-form input {min-height:48px;font-size:1rem;background:#fff;border-color:#dcccbc;}
+.recovery-form input:focus {border-color:#9b7958;box-shadow:0 0 0 3px #b99b7830;}
+.recovery-primary {display:flex;align-items:center;justify-content:center;width:100%;border:1px solid #71523f;border-radius:4px;min-height:48px;padding:13px 20px;background:#71523f;color:#fff;font-size:.84rem;font-weight:600;text-decoration:none;margin-top:24px;}
+.recovery-primary:hover {background:#533a2b;color:#fff;}
+.recovery-small {font-size:.76rem;color:#8b7563;line-height:1.85;margin:20px 0;}
+.recovery-back,.recovery-login-link a {color:#775437;text-decoration:underline;text-underline-offset:4px;font-size:.82rem;}
+.recovery-login-link {text-align:center;margin:22px 0 0;}
+.recovery-form fieldset:disabled {opacity:.55;}
+.checkout-feedback {margin:18px 0 0;font-size:.9rem;line-height:1.8;color:#6e543d;}
+.checkout-feedback:not(:empty) {padding:16px 18px;background:#f6eee5;border-radius:4px;}
+.checkout-feedback-error:not(:empty) {background:#f9eae4;border:1px solid #d6b2a4;color:#863e2e;}
+@media(max-width:575px){.recovery-page{padding:32px 14px 40px}.recovery-card{padding:26px 22px}.recovery-card h1{font-size:1.7rem}}
+
+/* Keep the brand and menu button inside small mobile viewports. */
+@media(max-width:575px){.navbar-brand{gap:8px;margin-right:8px;min-width:0}.navbar-logo{height:54px;flex-shrink:0}.navbar-brand-name{font-size:18px}.navbar .navbar-toggler{padding:6px 9px}.navbar>.container{column-gap:6px}.navbar-actions{flex-wrap:wrap}}
+@media(max-width:350px){.navbar-brand-name{font-size:16px}.navbar-logo{height:44px}}

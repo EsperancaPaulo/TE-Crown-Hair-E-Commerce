@@ -14,9 +14,9 @@ if (isset($_SESSION['user_id'])) {
         $_SESSION = []; session_regenerate_id(true);
     } else {
         require_once __DIR__.'/db.php';
-        $s=$conn->prepare('SELECT name,email,role,email_verified,is_active FROM users WHERE id=?');
+        $s=$conn->prepare('SELECT name,email,role,email_verified,is_active,auth_version FROM users WHERE id=?');
         $s->bind_param('i',$_SESSION['user_id']); $s->execute(); $u=$s->get_result()->fetch_assoc();
-        if (!$u || !$u['email_verified'] || !$u['is_active']) { $_SESSION=[]; session_regenerate_id(true); }
+        if (!$u || !$u['email_verified'] || !$u['is_active'] || (int)($_SESSION['auth_version'] ?? 0)!==(int)$u['auth_version']) { $_SESSION=[]; session_regenerate_id(true); }
         else { $_SESSION['user_role']=$u['role']; $_SESSION['user_name']=$u['name']; $_SESSION['user_email']=$u['email']; }
     }
 }

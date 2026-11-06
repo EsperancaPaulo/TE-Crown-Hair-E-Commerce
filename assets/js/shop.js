@@ -65,12 +65,17 @@ function addToCart(button) {
 
 
     let cart = getCart();
+    const alreadyAdded = cart.filter(item => Number(item.id) === Number(productCard.dataset.id)).reduce((total,item) => total + item.quantity,0);
+    if (alreadyAdded >= Number(productCard.dataset.stock)) {
+        showCartConfirmation('No more stock available for ' + productName);
+        return;
+    }
 
 
     const existingProduct =
         cart.find(
             item =>
-                item.name === productName
+                Number(item.id) === Number(productCard.dataset.id) && !item.colour && !item.length
         );
 
 
@@ -462,8 +467,7 @@ document.addEventListener(
                 const exists =
                     cart.some(
                         item =>
-                            item.name ===
-                            productName
+                            Number(item.id) === Number(product.dataset.id)
                     );
 
 

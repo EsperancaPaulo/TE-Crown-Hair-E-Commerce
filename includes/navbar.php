@@ -20,13 +20,18 @@ $shopPages = [
 $accountPages = [
     'login.php',
     'register.php',
-    'account.php'
+    'account.php',
+    'forgot-password.php',
+    'reset-password.php',
+    'enquiries.php',
+    'enquiry.php'
 ];
 
 $cartPages = [
     'cart.php',
     'checkout.php',
-    'order-confirmation.php'
+    'order-confirmation.php',
+    'demo-payment.php'
 ];
 
 

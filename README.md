@@ -1,3 +1,17 @@
+## Password recovery
+
+After pulling, run `php database/migrate.php`. Use **Forgot your password?** on the shared login page, or open `/pages/forgot-password.php`. Enter the registered email, request the link yourself, then set a new password privately from that email. Recovery is available only for active, verified accounts and does not change their role or verification state. No real account password was reset during development.
+
+Reset tokens are random, stored only as SHA-256 hashes, expire in 30 minutes and work once. The latest request replaces older links. Passwords require at least 12 characters and must fit the password-hash size limit; confirmation is required. Successful resets increment the account's authentication version so old sessions are rejected on their next request. Other accounts' sessions remain valid.
+
+Requests use the existing Brevo configuration with a 12-second send timeout, CSRF and per-email/per-address throttles. Responses do not confirm account existence or email delivery. Failed sends are marked failed and their links cannot reset a password. No tokens, recipients, new passwords or provider exception details are written to application logs. Links use a URL fragment so the secret is not placed in ordinary web access logs; the reset page removes it from the address bar and does not put it in browser storage. JavaScript is required on the reset page.
+
+Set `APP_URL` to the trusted HTTPS site origin for deployment. For local development with no explicit APP_URL, only a loopback request host is accepted and the current local origin is used. Public Host headers cannot set the reset-link origin. Email delivery still depends on valid Brevo credentials and sender configuration; local tests mock the transport and do not confirm inbox delivery.
+
+## Existing-cart checkout compatibility
+
+Older browser carts that lack product IDs can now be matched to a single active product by exact name. Ambiguous/unavailable names are rejected; prices and stock always come from the database. Checkout keeps its request key on retry to prevent duplicate orders. Errors appear beside Place Order, receive focus and are scrolled into view. The request has a 20-second client timeout with an explicit retry message; a timeout does not imply that an order failed to save, so retries reuse the same key. Existing filled forms do not need to be reloaded for the server-side compatibility fix.
+
 ## Reliable local startup
 
 Use `./bin/serve` (macOS/Linux) to start the protected local shop at `http://127.0.0.1:8001`. It uses four PHP development workers and a 30-second execution limit, so a stalled request/browser preconnection is less likely to block every tab. Use `SHOP_LISTEN=127.0.0.1:8017 DB_NAME=te_crown_repair_test ./bin/serve` for the isolated fixture shop. This remains a development server, not production hosting. Bootstrap 5.3.3 CSS/JS are served locally with upstream MIT licence notices retained; page rendering no longer waits on the external CDN. The script bundle is deferred. Authentication remains server-side and unchanged by these serving improvements.
@@ -18,7 +32,7 @@ Copy `.env.example` settings into your private `.env` as needed. Set `APP_URL` t
 
 Start locally with `php -S localhost:8001 router.php`. The router blocks private configuration, database files and dependencies. Apache hosting must honor the supplied `.htaccess`; other servers require equivalent private-path rules. Do not serve this repository with an unrestricted static server.
 
-Checkout now persists orders, delivery details, selected options and inventory reservations in a transaction. Prices and stock are read from the database; repeat submissions reuse the original order. The local sandbox payment page offers explicit success, decline, and cancellation controls without collecting real financial details. Server-side simulation records a unique DEMO transaction reference. Success marks demo payment paid and starts processing; decline permits retry on the same order; cancellation restores stock exactly once. Duplicate submissions never create a second successful transaction or reserve stock again. Demo payment labels appear in customer/admin order views, and demo totals are excluded from paid revenue. Admin cannot manually mark demo payments paid. This is not a payment provider integration; real funds, refunds and live card processing are not implemented. Delivery is currently included at R0; configure a real shipping policy before commercial use.
+Checkout now persists orders, delivery details, selected options and inventory reservations in a transaction. Prices and stock are read from the database; repeat submissions reuse the original order. The local sandbox payment page offers a demo-only card form with approved, pending-review and declined test numbers, plus cancellation. Card fields stay in the browser; only an opaque demo token reaches the server. Server-side simulation records a unique DEMO transaction reference. Pending review remains unpaid and can be retried or cancelled. Success marks demo payment paid and starts processing; decline permits retry on the same order; cancellation restores stock exactly once. Duplicate submissions never create a second successful transaction or reserve stock again. Demo payment labels appear in customer/admin order views, and demo totals are excluded from paid revenue. Admin cannot manually mark demo payments paid. This is not a payment provider integration; real funds, refunds and live card processing are not implemented. Delivery is currently included at R0; configure a real shipping policy before commercial use.
 
 Admin dashboard, customers, orders and customer history use real records. Customer deactivation revokes existing access on the next request. Existing registration still sends verification through Brevo, using a 30-minute single-use token. Expired/undelivered email recovery still needs administrator assistance. Contact messages now persist through the enquiry workflow described above; no email notifications are sent.
 
@@ -423,26 +437,24 @@ Production hosting configuration will include:
 
 💳 Payment Processing
 
-The checkout system is being developed to support structured payment processing.
-The planned payment workflow includes:
-- Payment method selection
-- Payment information validation
-- Expiry-date validation
-- Payment status handling
-- Order creation after successful payment processing
-- Inventory updates after successful orders
-- Order confirmation
-No real customer payment information should be stored directly in the application database.
+Checkout currently uses a local test-card payment flow. It does not charge real money.
+- Delivery details and the order are saved first; stock is reserved at that point.
+- Only the three displayed demo numbers are accepted in the browser. A future expiry, 3-digit demo CVC and demo name are validated locally.
+- Card fields remain in the browser. Only an opaque test result token is submitted.
+- Approved marks the demo payment paid and starts processing; pending review remains unpaid; declined can be retried.
+- Unpaid demo orders can be cancelled, releasing reserved stock once. Replays do not charge or reserve twice.
+- Customer/admin views show the saved outcome and DEMO reference. Real paid revenue excludes demo orders.
+- Live payment provider integration and real refunds are not implemented.
 
 
 📦 Inventory Management
 
 The product database includes stock quantities for each product.
-The completed inventory system will ensure that:
+The current inventory system ensures that:
 - Products display their available stock.
 - Customers cannot purchase quantities greater than available stock.
 - Out-of-stock products cannot be purchased.
-- Stock is updated after successful order processing.
+- Available stock is reserved when an order is saved; unpaid cancellation restores it once.
 - Administrators can view product stock levels.
 - Low-stock products can be identified by administrators.
 
@@ -511,3 +523,7 @@ https://github.com/EsperancaPaulo/TE-Crown-Hair-E-Commerce
 This repository contains a final-year academic development project and is not currently intended for production transactions.
 The system is still being developed and tested.
 Payment processing, production hosting, database-driven order processing, inventory management and other deployment requirements are being implemented and tested as part of the development process.
+
+## Hosting the complete application
+
+Use PHP/MySQL hosting for the complete customer/admin site. Read [HOSTING.md](HOSTING.md) for the required PHP version, private configuration, database import/migration, uploads and hosted verification. Netlify cannot directly execute this PHP application.

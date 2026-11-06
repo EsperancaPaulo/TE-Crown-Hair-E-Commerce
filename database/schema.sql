@@ -25,6 +25,7 @@ CREATE TABLE users (
     verification_token VARCHAR(64) NULL,
     verification_expires DATETIME NULL,
     is_active TINYINT(1) NOT NULL DEFAULT 1,
+    auth_version INT UNSIGNED NOT NULL DEFAULT 0,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

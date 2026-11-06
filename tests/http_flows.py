@@ -46,8 +46,9 @@ status,body,_=other.request('/pages/demo-payment.php',{'csrf':other_csrf,'id':oi
 check(status==404,'forged cross-customer payment POST rejected')
 status,body,_=other.request('/pages/account.php?user_id=1');check('0 orders' in body and 'Repair Customer' not in body,'dashboard ignores client-supplied customer identity')
 def pay(oid,outcome):
- csrf,body=customer.csrf('/pages/demo-payment.php?id='+str(oid));data={'csrf':csrf,'id':oid,'request_key':token(body,'request_key'),'outcome':outcome};return data,customer.request('/pages/demo-payment.php',data)
+ csrf,body=customer.csrf('/pages/demo-payment.php?id='+str(oid));data={'csrf':csrf,'id':oid,'request_key':token(body,'request_key'),'outcome':'cancel' if outcome=='cancel' else 'card','demo_card':{'success':'approved','decline':'declined','pending':'review'}.get(outcome,'invalid')};return data,customer.request('/pages/demo-payment.php',data)
 _,(status,body,_)=pay(oid,'bogus');check(status==422,'server rejects unrecognized simulation result')
+_,(status,body,_)=pay(oid,'pending');check('Payment pending' in body and 'pending-review' in body,'pending-review card remains unpaid with retry')
 _,(status,body,_)=pay(oid,'decline');check('Payment failed' in body and 'retry demo payment' in body,'decline persisted with retry')
 payment,(status,body,_)=pay(oid,'success');check('Payment paid' in body and 'processing' in body and 'DEMO-' in body,'retry succeeds with saved demo transaction')
 status,body,_=customer.request('/pages/demo-payment.php',payment);check(body.count('· success ·')==1,'repeated simulation creates no duplicate success')

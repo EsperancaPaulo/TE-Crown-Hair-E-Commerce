@@ -3,7 +3,9 @@ require_once '../includes/auth.php';
 requireCustomer();
 header('Content-Type: application/json');
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); echo json_encode(['error'=>'Use checkout to place an order.']); exit; }
-checkCsrf();
+if (!is_string($_POST['csrf'] ?? null) || !hash_equals($_SESSION['csrf'],$_POST['csrf'])) {
+ http_response_code(403); echo json_encode(['error'=>'Your checkout form expired. Sign in again or reload checkout before retrying.']); exit;
+}
 require_once '../includes/db.php';
 function rejectOrder($message) { throw new InvalidArgumentException($message); }
 try {
@@ -28,7 +30,17 @@ try {
   if (!is_array($item)) rejectOrder('Invalid cart.');
   $id=filter_var($item['id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
   $qty=filter_var($item['quantity']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1,'max_range'=>999]]);
-  if (!$id || !$qty) rejectOrder('Please remove older cart items and add them again from the shop.');
+  if (!$qty) rejectOrder('Please choose a positive whole quantity for each item.');
+  // Older versions of the cart stored names without IDs. Resolve only a unique current catalogue match.
+  if (!isset($item['id']) || $item['id']==='') {
+   $name=$item['name'] ?? null;
+   if (!is_string($name) || strlen($name)>150) rejectOrder('An older cart item could not be matched. Please update your cart.');
+   $lookup=$conn->prepare("SELECT id FROM products WHERE name=? AND status='active' LIMIT 2");
+   $lookup->bind_param('s',$name);$lookup->execute();$matches=$lookup->get_result();
+   if ($matches->num_rows!==1) rejectOrder('An older cart item is unavailable or ambiguous. Please update your cart.');
+   $id=(int)$matches->fetch_assoc()['id'];
+  }
+  if (!$id) rejectOrder('A cart item could not be matched. Please update your cart.');
   $colour=$item['colour']??'';$length=(string)($item['length']??'');
   if (!is_string($colour) || !in_array($colour,['','Natural Black','1B','Brown','Burgundy','Blonde']) || !in_array($length,['','12','14','16','18','20'])) rejectOrder('Invalid product options.');
   $items[]=['id'=>$id,'quantity'=>$qty,'colour'=>$colour,'length'=>$length];
