@@ -7,6 +7,8 @@ require_once '../includes/mail.php';
 
 $message = "";
 $messageType = "";
+$name = ""; $email = "";
+require_once '../includes/password-reset.php';
 
 if (isset($_SESSION["user_id"])) {
     if (isset($_SESSION["user_role"]) && $_SESSION["user_role"] === "admin") {
@@ -20,18 +22,33 @@ if (isset($_SESSION["user_id"])) {
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     checkCsrf();
+    try {
 
-    $name = trim($_POST["name"] ?? "");
-    $email = trim($_POST["email"] ?? "");
-    $password = $_POST["password"] ?? "";
-    $confirmPassword = $_POST["confirm_password"] ?? "";
+    $name = trim((is_string($_POST["name"] ?? null) ? $_POST["name"] : ""));
+    $email = trim((is_string($_POST["email"] ?? null) ? $_POST["email"] : ""));
+    if (($_POST['action'] ?? '') === 'resend') {
+        if (!filter_var($email,FILTER_VALIDATE_EMAIL) || strlen($email)>150) throw new InvalidArgumentException('Enter a valid email address to resend verification.');
+        $allowedEmail=passwordResetThrottle($conn,'verification-email|'.strtolower($email),3,3600);
+        $allowedIp=passwordResetThrottle($conn,'verification-ip|'.($_SERVER['REMOTE_ADDR']??''),10,3600);
+        if (!$allowedEmail || !$allowedIp) { http_response_code(429);throw new InvalidArgumentException('Too many verification requests. Please wait an hour before trying again.'); }
+        $lookup=$conn->prepare('SELECT id,name,email FROM users WHERE email=? AND email_verified=0 AND is_active=1');$lookup->bind_param('s',$email);$lookup->execute();$user=$lookup->get_result()->fetch_assoc();
+        if ($user) {
+            $token=bin2hex(random_bytes(32));$expires=gmdate('Y-m-d H:i:s',time()+1800);
+            $update=$conn->prepare('UPDATE users SET verification_token=?,verification_expires=? WHERE id=? AND email_verified=0');$update->bind_param('ssi',$token,$expires,$user['id']);$update->execute();
+            $result=sendVerificationEmail($user['email'],$user['name'],passwordRecoveryUrl().'/pages/verify-email.php?token='.urlencode($token));
+            if (!$result['success']) throw new RuntimeException('Verification transport failed.');
+        }
+        $message='If this address belongs to an active account awaiting verification, a new verification email has been requested. Check your inbox and Spam/Junk. Use the newest link.';$messageType='success';
+    } else {
+    $password = (is_string($_POST["password"] ?? null) ? $_POST["password"] : "");
+    $confirmPassword = (is_string($_POST["confirm_password"] ?? null) ? $_POST["confirm_password"] : "");
 
     if ($name === "" || $email === "" || $password === "" || $confirmPassword === "") {
 
         $message = "Please complete all required fields.";
         $messageType = "error";
 
-    } elseif (strlen($name)>100 || strlen($email)>150 || strlen($password)>72) {
+    } elseif (strlen($name)>100 || strlen($email)>150 || strlen($password)>72 || str_contains($password,"\0")) {
         $message="Name, email or password is too long."; $messageType="error";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 
@@ -68,7 +85,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             if ((int)$existingUser["email_verified"] === 0) {
 
-                $message = "An account with this email already exists but has not been verified. Please check your email for the verification link.";
+                $message = "This account is awaiting email verification. Use Resend verification email below to request a new link.";
                 $messageType = "error";
 
             } else {
@@ -122,7 +139,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             if ($stmt->execute()) {
 
                 $verificationLink =
-                    rtrim(getenv("APP_URL") ?: ($env["APP_URL"] ?? "http://localhost:8001"), "/") . "/pages/verify-email.php?token="
+                    passwordRecoveryUrl() . "/pages/verify-email.php?token="
                     . urlencode($verificationToken);
 
                 $emailResult = sendVerificationEmail(
@@ -141,7 +158,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 } else {
 
                     $message =
-                        "Your account was created, but we could not send the verification email. Please contact the administrator.";
+                        "Your account was created, but we could not send the verification email. Please use Resend verification email below to try again shortly.";
 
                     $messageType = "error";
                 }
@@ -156,6 +173,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             $stmt->close();
         }
+    }
+    }
+    } catch (InvalidArgumentException $exception) {
+        $message=$exception->getMessage();$messageType='error';
+    } catch (Throwable $exception) {
+        error_log('Account registration or verification could not be completed.');
+        http_response_code(503);
+        $message='We could not complete this request. If your account was already created, use Resend verification email below. Otherwise, try again shortly.';$messageType='error';
     }
 }
 
@@ -182,7 +207,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             <?php if ($message !== ""): ?>
 
-                <div class="admin-form-message <?php echo htmlspecialchars($messageType); ?>">
+                <div class="admin-form-message <?php echo htmlspecialchars($messageType); ?>" role="alert" tabindex="-1">
 
                     <?php echo htmlspecialchars($message); ?>
 
@@ -207,7 +232,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         id="name"
                         name="name"
                         placeholder="Enter your full name"
-                        value="<?php echo htmlspecialchars($_POST["name"] ?? ""); ?>"
+                        value="<?php echo htmlspecialchars($name,ENT_QUOTES,'UTF-8'); ?>"
                         required
                     >
 
@@ -224,7 +249,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         id="email"
                         name="email"
                         placeholder="Enter your email"
-                        value="<?php echo htmlspecialchars($_POST["email"] ?? ""); ?>"
+                        value="<?php echo htmlspecialchars($email,ENT_QUOTES,'UTF-8'); ?>"
                         required
                     >
 
@@ -280,6 +305,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 </p>
 
             </form>
+            <details class="verification-resend" <?php echo $messageType==='error'?'open':''; ?> style="margin-top:24px">
+                <summary>Resend verification email</summary>
+                <form method="post" class="auth-form" style="margin-top:18px">
+                    <?php echo csrfField(); ?><input type="hidden" name="action" value="resend">
+                    <div class="form-group"><label for="resendEmail">Registered email address</label><input type="email" id="resendEmail" name="email" value="<?php echo htmlspecialchars($email,ENT_QUOTES,'UTF-8'); ?>" maxlength="150" required autocomplete="email"></div>
+                    <button type="submit" class="auth-submit">RESEND VERIFICATION EMAIL</button>
+                    <p style="font-size:.85rem;margin-top:12px">Links expire after 30 minutes. Check Spam/Junk and use the newest email.</p>
+                </form>
+            </details>
 
         </div>
 

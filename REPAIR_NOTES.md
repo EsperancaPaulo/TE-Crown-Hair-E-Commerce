@@ -50,3 +50,12 @@ This is a local payment simulator, not a real payment gateway. Live funds/refund
 - Updated checkout/confirmation wording and navigation active states. Fixed missing-product HTTP status, fractional product quantities, combined variant stock limits and catalogue matching by product ID. Product success/validation notices now stay inline instead of blocking browser popups.
 - Fixed the oversized storefront mobile brand/menu layout. Blocked contradictory legacy paid-and-cancelled admin updates.
 - Verified PHP/JavaScript syntax; customer/admin HTTP flows; stock invariants; enquiry/privacy/stale edits; recovery with mocked email; additional card tampering, fulfilment, 26 page and local-asset checks; browser-only validator tests. Test records are isolated in te_crown_payment_test. No live charge or external email was made.
+
+
+## Hosted registration repair — 7 November 2026
+
+Confirmed on the assigned InfinityFree server: the Brevo SDK raises `Error: Call to undefined function Symfony\Component\HttpClient\Response\curl_multi_exec()` when making a request. Native cURL HTTPS to Brevo succeeds. Replaced the email transport with direct certificate-verified HTTPS, a 5-second connection timeout and 12-second total timeout. Acceptance requires HTTP 201 plus a message ID; failures are logged only as status/error codes without credentials, recipients or links. Verification and password recovery share this transport.
+
+Registration now handles Throwable failures and malformed input with rendered feedback. Added CSRF-protected, rate-limited verification resend for existing active unverified accounts. Latest links expire after 30 minutes; resend does not alter passwords, roles or verification state. Deployed the two changed PHP files. A resend through the normal hosted form was confirmed delivered and opened in Brevo's delivery report. No default accounts or public account-mutation probes were deployed. Temporary read-only diagnostics were removed after investigation.
+
+Validation: PHP syntax, mocked mail transport acceptance/failures/timeouts/Error, isolated registration validation/duplicate/resend/CSRF/malformed-field checks, and the password recovery regression suite.

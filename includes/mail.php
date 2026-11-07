@@ -1,180 +1,45 @@
 <?php
-
-require_once __DIR__ . '/../vendor/autoload.php';
-
-use Brevo\Brevo;
-use Brevo\TransactionalEmails\Requests\SendTransacEmailRequest;
-use Brevo\TransactionalEmails\Types\SendTransacEmailRequestSender;
-use Brevo\TransactionalEmails\Types\SendTransacEmailRequestToItem;
-
-function loadBrevoEnvironment()
-{
-    $envFile = __DIR__ . '/../.env';
-
-    if (!file_exists($envFile)) {
-        return [];
-    }
-
-    $envLines = file(
-        $envFile,
-        FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES
-    );
-
-    $env = [];
-
-    foreach ($envLines as $line) {
-        $line = trim($line);
-
-        if ($line === "" || str_starts_with($line, "#")) {
-            continue;
+// Direct HTTPS transport avoids shared-host restrictions in optional SDK transports.
+function loadBrevoEnvironment() {
+    $settings=[];
+    foreach (@file(__DIR__.'/../.env',FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
+        if (str_contains($line,'=') && !str_starts_with(trim($line),'#')) {
+            [$key,$value]=explode('=',$line,2);$settings[trim($key)]=trim(trim($value),"\"'");
         }
-
-        [$key, $value] = array_pad(
-            explode("=", $line, 2),
-            2,
-            ""
-        );
-
-        $env[trim($key)] = trim($value);
     }
-
-    return $env;
+    return $settings;
 }
-
-function sendVerificationEmail(
-    $recipientEmail,
-    $recipientName,
-    $verificationLink
-) {
-    $env = loadBrevoEnvironment();
-
-    $apiKey = $env["BREVO_API_KEY"] ?? "";
-    $senderEmail = $env["BREVO_SENDER_EMAIL"] ?? "";
-    $senderName = $env["BREVO_SENDER_NAME"] ?? "TE_Crown Hair";
-
-    if ($apiKey === "" || $senderEmail === "") {
-        return [
-            "success" => false,
-            "message" => "Brevo email configuration is incomplete."
-        ];
-    }
-
-    try {
-
-        $client = new Brevo(
-            apiKey: $apiKey
-        );
-
-        $request = new SendTransacEmailRequest([
-            "subject" => "Verify Your TE_Crown Hair Account",
-
-            "htmlContent" => "
-                <div style='
-                    font-family: Arial, sans-serif;
-                    max-width: 600px;
-                    margin: auto;
-                    padding: 30px;
-                    background-color: #fdf8f5;
-                    color: #3f302a;
-                '>
-
-                    <h2 style='
-                        color: #6b4f45;
-                        text-align: center;
-                    '>
-                        Welcome to TE_Crown Hair
-                    </h2>
-
-                    <p>
-                        Hello " . htmlspecialchars($recipientName) . ",
-                    </p>
-
-                    <p>
-                        Thank you for creating your TE_Crown Hair account.
-                        Please verify your email address before logging in.
-                    </p>
-
-                    <div style='text-align: center; margin: 30px 0;'>
-
-                        <a href='" . htmlspecialchars($verificationLink) . "'
-                           style='
-                               background-color: #6b4f45;
-                               color: #ffffff;
-                               padding: 14px 24px;
-                               text-decoration: none;
-                               border-radius: 6px;
-                               display: inline-block;
-                               font-weight: bold;
-                           '>
-                            VERIFY MY EMAIL
-                        </a>
-
-                    </div>
-
-                    <p>
-                        If you did not create this account, you can safely
-                        ignore this email.
-                    </p>
-
-                    <p>
-                        Regards,<br>
-                        <strong>TE_Crown Hair</strong>
-                    </p>
-
-                </div>
-            ",
-
-            "sender" => new SendTransacEmailRequestSender([
-                "name" => $senderName,
-                "email" => $senderEmail
-            ]),
-
-            "to" => [
-                new SendTransacEmailRequestToItem([
-                    "email" => $recipientEmail,
-                    "name" => $recipientName
-                ])
-            ]
-        ]);
-
-        $result = $client
-            ->transactionalEmails
-            ->sendTransacEmail($request);
-
-        return [
-            "success" => true,
-            "message" => "Verification email sent successfully.",
-            "message_id" => $result->messageId ?? null
-        ];
-
-    } catch (Exception $e) {
-
-        return [
-            "success" => false,
-            "message" => "Unable to send verification email: "
-                . $e->getMessage()
-        ];
-    }
-}
-
-
-function sendPasswordResetEmail($recipientEmail,$recipientName,$resetLink) {
+function sendBrevoMessage($email,$name,$subject,$html,?callable $transport=null) {
     $settings=loadBrevoEnvironment();
-    $apiKey=getenv('BREVO_API_KEY') ?: ($settings['BREVO_API_KEY'] ?? '');
-    $sender=getenv('BREVO_SENDER_EMAIL') ?: ($settings['BREVO_SENDER_EMAIL'] ?? '');
-    $senderName=getenv('BREVO_SENDER_NAME') ?: ($settings['BREVO_SENDER_NAME'] ?? 'TE_Crown Hair');
-    if ($apiKey==='' || !filter_var($sender,FILTER_VALIDATE_EMAIL)) return false;
+    $key=getenv('BREVO_API_KEY') ?: ($settings['BREVO_API_KEY']??'');
+    $sender=getenv('BREVO_SENDER_EMAIL') ?: ($settings['BREVO_SENDER_EMAIL']??'');
+    $senderName=getenv('BREVO_SENDER_NAME') ?: ($settings['BREVO_SENDER_NAME']??'TE_Crown Hair');
+    $failure=['success'=>false,'message'=>'The email service could not accept the message. Please try again shortly.'];
+    if (!$key || !filter_var($sender,FILTER_VALIDATE_EMAIL) || !filter_var($email,FILTER_VALIDATE_EMAIL)) return $failure;
     try {
-        $client=new Brevo(apiKey:$apiKey);
-        $name=htmlspecialchars($recipientName,ENT_QUOTES,'UTF-8');
-        $url=htmlspecialchars($resetLink,ENT_QUOTES,'UTF-8');
-        $request=new SendTransacEmailRequest([
-            'subject'=>'Reset your TE_Crown Hair password',
-            'htmlContent'=>"<div style='font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:32px;background:#faf5ef;color:#513b2b'><h2>Reset your password</h2><p>Hello {$name},</p><p>We received a password reset request for your TE_Crown Hair account.</p><p><a href='{$url}' style='display:inline-block;background:#71523f;color:#fff;padding:14px 22px;text-decoration:none'>Choose a new password</a></p><p>This link expires in 30 minutes and can be used once. Only the newest link works.</p><p>If you did not request this, ignore this email. Your password has not changed.</p><p>TE_Crown Hair</p></div>",
-            'sender'=>new SendTransacEmailRequestSender(['name'=>$senderName,'email'=>$sender]),
-            'to'=>[new SendTransacEmailRequestToItem(['email'=>$recipientEmail,'name'=>$recipientName])]
-        ]);
-        $client->transactionalEmails->sendTransacEmail($request,['timeout'=>12.0,'maxRetries'=>0]);
-        return true;
-    } catch (Throwable $exception) {return false;}
+        $body=json_encode(['sender'=>['name'=>$senderName,'email'=>$sender],'to'=>[['email'=>$email,'name'=>$name]],'subject'=>$subject,'htmlContent'=>$html],JSON_THROW_ON_ERROR);
+        if ($transport) { $response=$transport($body,$key); }
+        else {
+            if (!function_exists('curl_init')) return $failure;
+            $curl=curl_init('https://api.brevo.com/v3/smtp/email');
+            curl_setopt_array($curl,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>$body,CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT=>5,CURLOPT_TIMEOUT=>12,CURLOPT_HTTPHEADER=>['accept: application/json','content-type: application/json','api-key: '.$key],CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_SSL_VERIFYHOST=>2]);
+            $raw=curl_exec($curl);$response=['status'=>(int)curl_getinfo($curl,CURLINFO_RESPONSE_CODE),'body'=>$raw,'error'=>curl_errno($curl)];
+            unset($curl);
+        }
+        $decoded=json_decode(is_string($response['body']??null)?$response['body']:'',true);
+        if (($response['error']??0)===0 && ($response['status']??0)===201 && is_string($decoded['messageId']??null) && $decoded['messageId']!=='') {
+            return ['success'=>true,'message'=>'The email service accepted the message.','message_id'=>$decoded['messageId']];
+        }
+        // Log only status/error numbers: never credentials, recipient, link or provider payload.
+        error_log('Transactional email not accepted; HTTP '.(int)($response['status']??0).'; transport '.(int)($response['error']??0));
+    } catch (Throwable $exception) { error_log('Transactional email transport failed.'); }
+    return $failure;
+}
+function sendVerificationEmail($recipientEmail,$recipientName,$verificationLink) {
+    $name=htmlspecialchars($recipientName,ENT_QUOTES,'UTF-8');$url=htmlspecialchars($verificationLink,ENT_QUOTES,'UTF-8');
+    return sendBrevoMessage($recipientEmail,$recipientName,'Verify Your TE_Crown Hair Account',"<div style='font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:30px;background:#fdf8f5;color:#3f302a'><h2>Welcome to TE_Crown Hair</h2><p>Hello {$name},</p><p>Please verify your email address before logging in.</p><p><a href='{$url}' style='display:inline-block;padding:14px 24px;background:#6b4f45;color:white;text-decoration:none'>VERIFY MY EMAIL</a></p><p>This link expires in 30 minutes. Only the newest link works.</p><p>If you did not create this account, ignore this message.</p><p>TE_Crown Hair</p></div>");
+}
+function sendPasswordResetEmail($recipientEmail,$recipientName,$resetLink) {
+    $name=htmlspecialchars($recipientName,ENT_QUOTES,'UTF-8');$url=htmlspecialchars($resetLink,ENT_QUOTES,'UTF-8');
+    return sendBrevoMessage($recipientEmail,$recipientName,'Reset your TE_Crown Hair password',"<div style='font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:32px;background:#faf5ef;color:#513b2b'><h2>Reset your password</h2><p>Hello {$name},</p><p><a href='{$url}'>Choose a new password</a></p><p>This link expires in 30 minutes and can be used once. Only the newest link works.</p><p>If you did not request this, ignore this email. Your password has not changed.</p><p>TE_Crown Hair</p></div>")['success'];
 }

@@ -16,3 +16,6 @@ Test-card checkout regression (6 November 2026):
 - Browser checks should cover desktop/mobile rendering, test-card selection, invalid fields, pending/declined/approved results, retry, cancellation and matching admin records.
 
 The card form intentionally omits `name` attributes on cardholder, number, expiry and CVC inputs. Only `approved`, `review` or `declined` demo tokens are submitted. Raw test or real card numbers cannot select a result directly on the server.
+
+
+For the hosted-registration transport fix, run `php tests/mail_transport.php` (mock transport; no external email) and `python3 tests/registration_flows.py http://127.0.0.1:8018` against the isolated fixture server. The registration checks use invalid/unknown addresses without dispatching email. The native production mail transport uses HTTPS certificate verification, bounded timeouts, and requires a provider message ID before reporting acceptance.

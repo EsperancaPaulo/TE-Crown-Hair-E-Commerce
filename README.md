@@ -12,7 +12,7 @@ Customers can browse products, manage a cart, place demonstration orders and tra
 
 **Status:** Local implementation and automated regression checks completed; hosted verification pending.
 
-**Public website:** To be added after deployment.
+**Public website:** [tecrownhair.ct.ws](https://tecrownhair.ct.ws)
 
 **Payments:** Test mode only. No real funds are collected.
 
@@ -198,9 +198,11 @@ Recovery tests use a mocked mail sender; they do not send external email or prov
 
 ## Hosting
 
-**Hosting preparation is in progress. The public website address will be added after deployment.**
+**The application is hosted at [tecrownhair.ct.ws](https://tecrownhair.ct.ws) on InfinityFree.**
 
-The complete application requires a PHP/MySQL host. **InfinityFree is the current free-hosting option under consideration**; its setup still needs a hosting-ready file package, a complete database import and verification on the assigned server.
+Registration email transport was verified on the hosted server on 7 November 2026. Native HTTPS/cURL is used because the host disables the `curl_multi_exec` function required by the SDK transport. Complete customer/admin hosted acceptance testing is tracked separately.
+
+The complete application requires a PHP/MySQL host. **InfinityFree is the current hosting provider**; its upload package includes installed dependencies, private server settings and the complete database schema.
 
 For InfinityFree:
 
@@ -224,10 +226,10 @@ Provider references: [InfinityFree features](https://www.infinityfree.com/) · [
 - Unpaid stock reservations do not automatically expire; cancel unwanted unpaid demo orders explicitly.
 - Customer profile/address editing and a reply composer within an existing enquiry are not available.
 - Guest enquiries remain unlinked; replies saved against them are internal only.
-- Email-verification resend is not self-service; expired or missing verification links require maintainer assistance.
+- Verification email resend is available on the registration page, with request limits and 30-minute links.
 - The cart is stored in the current browser rather than synchronised across devices.
 - Commercial shipping, refunds and support policies require configuration before a public trading launch.
-- Hosted deployment, real email delivery and final hosted acceptance checks remain outstanding.
+- Final acceptance checks across every hosted customer/admin workflow remain outstanding. Registration verification-email delivery has been confirmed.
 
 ## Project information
 
