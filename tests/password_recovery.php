@@ -41,11 +41,17 @@ try {
     // These are freshly prepared fixture addresses, never real customer data.
     requestPasswordReset($conn,'admin@example.invalid','fixture-request',$base,$sender);
     checkRecovery($sendCount===1,'request uses injected mock sender; no external email sent');
-    parse_str(parse_url($captured,PHP_URL_FRAGMENT),$fragment);$first=$fragment['token'] ?? '';
-    checkRecovery(strlen($first)===64 && parse_url($captured,PHP_URL_QUERY)===null,'random token uses URL fragment, not logged query string');
+    parse_str(parse_url($captured,PHP_URL_QUERY),$fragment);$first=$fragment['token'] ?? '';
+    checkRecovery(strlen($first)===64 && parse_url($captured,PHP_URL_FRAGMENT)===null,'reset token uses a redirect-compatible link');
     $row=$conn->query('SELECT token_hash,mail_status FROM password_resets WHERE user_id='.$id)->fetch_assoc();
     checkRecovery($row['token_hash']!==$first && hash_equals(hash('sha256',$first),$row['token_hash']) && $row['mail_status']==='sent','database stores only token hash');
+    [$status,$form,$cleanUrl]=recoveryHttp($resetJar,'/pages/reset-password.php?token='.$first);
+    checkRecovery($status===200 && !str_contains($cleanUrl,'token=') && str_contains($form,'Your reset link is ready'),'email link exchanges token for session and cleans URL');
     [, $form]=recoveryHttp($resetJar,'/pages/reset-password.php');$csrf=recoveryCsrf($form);
+    checkRecovery(str_contains($form,'Your reset link is ready') && usablePasswordReset($conn,$first),'reload retains reset session without consuming token');
+    [$status,$form]=recoveryHttp($resetJar,'/pages/reset-password.php',['csrf'=>$csrf,'action'=>'open-code','recovery_code'=>$first]);
+    checkRecovery($status===200 && str_contains($form,'Your reset link is ready'),'recovery-code fallback opens form without changing password');
+    foreach (['abcdefghijkl!1','ABCDEFGHIJKL!1','Abcdefghijkl!','Abcdefghijkl1','Ab1!short',str_repeat('A',73).'a1!'] as $weak) checkRecovery(!validRecoveryPassword($weak),'weak password rejected by shared policy');
     $fields=['csrf'=>$csrf,'token'=>$first,'password'=>$new,'confirm_password'=>$new];
     [$status]=recoveryHttp($resetJar,'/pages/reset-password.php',[...$fields,'csrf'=>'invalid']);checkRecovery($status===403,'reset requires valid CSRF');
     [$status]=recoveryHttp($resetJar,'/pages/reset-password.php',[...$fields,'token'=>str_repeat('c',64)]);checkRecovery($status===422,'wrong reset token rejected');
@@ -53,7 +59,7 @@ try {
     [$status]=recoveryHttp($resetJar,'/pages/reset-password.php',[...$fields,'confirm_password'=>'DifferentFixturePassword']);checkRecovery($status===422,'password confirmation mismatch rejected');
     $conn->query('UPDATE password_resets SET expires_at=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 SECOND) WHERE user_id='.$id);
     [$status]=recoveryHttp($resetJar,'/pages/reset-password.php',$fields);checkRecovery($status===422,'expired token rejected');
-    requestPasswordReset($conn,'admin@example.invalid','fixture-request',$base,$sender);parse_str(parse_url($captured,PHP_URL_FRAGMENT),$fragment);$second=$fragment['token'];
+    requestPasswordReset($conn,'admin@example.invalid','fixture-request',$base,$sender);parse_str(parse_url($captured,PHP_URL_QUERY),$fragment);$second=$fragment['token'];
     checkRecovery($first!==$second && completePasswordReset($conn,$first,$new)===false,'new request replaces earlier token');
     $fields['token']=$second;
     [$status,$body]=recoveryHttp($resetJar,'/pages/reset-password.php',$fields);checkRecovery($status===200 && str_contains($body,'Password updated'),'correct reset completes through HTTP form');

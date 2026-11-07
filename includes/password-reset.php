@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__.'/password-policy.php';
 // Password recovery services. Transport is supplied explicitly so tests never send email.
 function passwordRecoveryUrl() {
     global $env;
@@ -33,7 +34,7 @@ function requestPasswordReset($conn,$email,$address,$baseUrl,callable $send) {
     // Both existing and unknown accounts consume the same per-address and per-email limits.
     $ipAllowed=passwordResetThrottle($conn,'request-ip|'.$address,10,3600);
     $emailAllowed=passwordResetThrottle($conn,'request-email|'.strtolower($email),3,3600);
-    if (!$ipAllowed || !$emailAllowed) return;
+    if (!$ipAllowed || !$emailAllowed) return false;
     $stmt=$conn->prepare('SELECT id,name,email FROM users WHERE email=? AND is_active=1 AND email_verified=1 LIMIT 1');
     $stmt->bind_param('s',$email);$stmt->execute();$user=$stmt->get_result()->fetch_assoc();
     if (!$user) return;
@@ -41,8 +42,8 @@ function requestPasswordReset($conn,$email,$address,$baseUrl,callable $send) {
     $stmt=$conn->prepare("INSERT INTO password_resets(user_id,token_hash,expires_at,mail_status) VALUES (?,?,DATE_ADD(UTC_TIMESTAMP(),INTERVAL 30 MINUTE),'pending')
         ON DUPLICATE KEY UPDATE token_hash=VALUES(token_hash),expires_at=VALUES(expires_at),mail_status='pending',created_at=UTC_TIMESTAMP()");
     $stmt->bind_param('is',$user['id'],$hash);$stmt->execute();
-    // Fragments never enter server access logs or ordinary Referer headers.
-    $link=$baseUrl.'/pages/reset-password.php#token='.$raw;
+    // Query tokens survive hosting/email redirects. The landing page immediately moves them to a private session and redirects to a clean URL.
+    $link=$baseUrl.'/pages/reset-password.php?token='.$raw;
     try { $accepted=(bool)$send($user['email'],$user['name'],$link); }
     catch (Throwable $exception) { $accepted=false; }
     $status=$accepted?'sent':'failed';
@@ -53,9 +54,13 @@ function requestPasswordReset($conn,$email,$address,$baseUrl,callable $send) {
 }
 
 function validRecoveryPassword($password) {
-    if (!is_string($password) || strlen($password)>72 || str_contains($password,"\0")) return false;
-    $characters=preg_match_all('/./us',$password);
-    return $characters!==false && $characters>=12;
+    return passwordPolicyError($password)==='';
+}
+function usablePasswordReset($conn,$raw) {
+    if (!is_string($raw) || !preg_match('/^[a-f0-9]{64}$/',$raw)) return false;
+    $hash=hash('sha256',$raw);
+    $stmt=$conn->prepare("SELECT r.user_id FROM password_resets r JOIN users u ON u.id=r.user_id WHERE r.token_hash=? AND r.mail_status='sent' AND r.expires_at>UTC_TIMESTAMP() AND u.is_active=1 AND u.email_verified=1");
+    $stmt->bind_param('s',$hash);$stmt->execute();return $stmt->get_result()->num_rows===1;
 }
 
 function completePasswordReset($conn,$raw,$password) {

@@ -55,9 +55,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $message = "Please enter a valid email address.";
         $messageType = "error";
 
-    } elseif (strlen($password) < 8) {
+    } elseif (passwordPolicyError($password)!=='') {
 
-        $message = "Password must be at least 8 characters long.";
+        $message = passwordRequirements();
         $messageType = "error";
 
     } elseif ($password !== $confirmPassword) {
@@ -218,7 +218,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             <form
                 method="POST"
                 class="auth-form"
-                novalidate
             ><?php echo csrfField(); ?>
 
                 <div class="form-group">
@@ -265,11 +264,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         type="password"
                         id="password"
                         name="password"
-                        placeholder="Create a password"
+                        placeholder="Create a strong password"
+                        minlength="12" maxlength="72" autocomplete="new-password" aria-describedby="registrationPasswordHelp"
+                        pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s]).{12,72}"
+                        title="At least 12 characters with uppercase, lowercase, a number and a symbol"
                         required
                     >
 
                 </div>
+
+                <p id="registrationPasswordHelp" style="font-size:.85rem;line-height:1.6;margin-bottom:20px"><?php echo htmlspecialchars(passwordRequirements(),ENT_QUOTES,'UTF-8'); ?></p>
 
                 <div class="form-group">
 
@@ -282,6 +286,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         id="confirm_password"
                         name="confirm_password"
                         placeholder="Confirm your password"
+                        minlength="12" maxlength="72" autocomplete="new-password"
                         required
                     >
 

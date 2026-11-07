@@ -14,14 +14,15 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             // No session lock is held while contacting the mail provider.
             session_write_close();
             require_once '../includes/mail.php';
-            requestPasswordReset($conn,trim($email),$_SERVER['REMOTE_ADDR'] ?? '',$baseUrl,'sendPasswordResetEmail');
-            header('Location: forgot-password.php?requested=1',true,303);exit;
+            $result=requestPasswordReset($conn,trim($email),$_SERVER['REMOTE_ADDR'] ?? '',$baseUrl,'sendPasswordResetEmail');
+            header('Location: forgot-password.php?'.($result===false?'limited=1':'requested=1'),true,303);exit;
         } catch (Throwable $exception) {
             http_response_code(503);$error='Password recovery is temporarily unavailable. Please try again later. No password has been changed.';
             if (session_status()!==PHP_SESSION_ACTIVE) session_start();
         }
     }
 }
+if (isset($_GET['limited'])) {http_response_code(429);$error='Too many reset requests. Please wait up to one hour before requesting another email. Check your inbox and spam folder for the newest message already sent.';}
 include '../includes/header.php';include '../includes/navbar.php'; ?>
 <main class="recovery-page"><section class="recovery-card" aria-labelledby="recoveryHeading"><p class="account-eyebrow">LET’S GET YOU BACK IN</p><h1 id="recoveryHeading">Forgot your password?</h1><p class="recovery-intro">Enter the email address registered to your account. You’ll choose your new password privately using a secure email link.</p>
 <?php if ($error): ?><p class="enquiry-notice enquiry-error" role="alert"><?php echo e($error); ?></p><?php endif; ?>

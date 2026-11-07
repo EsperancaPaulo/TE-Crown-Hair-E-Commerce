@@ -153,7 +153,8 @@ Orders are saved and stock is reserved **before** payment simulation. Checkout r
 - CSRF protection, prepared statements and escaped output.
 - Login and password-recovery request throttling.
 - Single-use, time-limited email verification and recovery links.
-- Recovery tokens stored as hashes; successful resets revoke that account's older sessions.
+- Registration and password resets require at least 12 characters, including uppercase, lowercase, a number and a symbol (maximum 72 bytes). Existing sign-in passwords remain valid.
+- Recovery tokens are stored as hashes, expire after 30 minutes and work once. Email links survive hosting redirects and are exchanged for a private session before redirecting to a clean address. A recovery code provides a fallback if the email button fails. Successful resets revoke that account's older sessions.
 - Customer deactivation removes access on the next authenticated request.
 - Duplicate-submit and stale-edit protection for enquiry responses.
 

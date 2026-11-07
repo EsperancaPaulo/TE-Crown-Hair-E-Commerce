@@ -12,3 +12,7 @@ check(status==200 and 'If this address' in b and '<html' in b,'unknown-account r
 check(c.request('/pages/register.php',{'csrf':'wrong','action':'resend','email':'unknown-regression-resend@example.invalid'})[0]==403,'resend requires CSRF')
 status,b,_=c.request('/pages/register.php',{'csrf':csrf,'name[]':'Test','email':'bad','password':'Short1!','confirm_password':'Short1!'})
 check(status==200 and 'required fields' in b and '<html' in b,'malformed array field does not blank the page')
+
+for weak in ["abcdefghijkl!1", "ABCDEFGHIJKL!1", "Abcdefghijkl!", "Abcdefghijkl1", "Ab1!short"]:
+    status,b,_=c.request("/pages/register.php", {"csrf":csrf,"name":"Policy Fixture","email":"password-policy@example.invalid","password":weak,"confirm_password":weak})
+    check(status==200 and "Use at least 12 characters" in b and "<html" in b,"weak registration password rejected with guidance")
