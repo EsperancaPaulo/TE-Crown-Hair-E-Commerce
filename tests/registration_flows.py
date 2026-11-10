@@ -16,3 +16,8 @@ check(status==200 and 'required fields' in b and '<html' in b,'malformed array f
 for weak in ["abcdefghijkl!1", "ABCDEFGHIJKL!1", "Abcdefghijkl!", "Abcdefghijkl1", "Ab1!short"]:
     status,b,_=c.request("/pages/register.php", {"csrf":csrf,"name":"Policy Fixture","email":"password-policy@example.invalid","password":weak,"confirm_password":weak})
     check(status==200 and "Use at least 12 characters" in b and "<html" in b,"weak registration password rejected with guidance")
+
+status,b,_=c.request("/pages/register.php?verification=1")
+check(status==200 and 'id="verification-resend" class="verification-resend" open' in b and "return to password recovery" in b,"recovery link opens verification resend with return path")
+status,b,_=c.request("/pages/forgot-password.php")
+check(status==200 and "Resend your verification email" in b and "then return here to reset your password" in b,"recovery explains how verification leads back to password reset")

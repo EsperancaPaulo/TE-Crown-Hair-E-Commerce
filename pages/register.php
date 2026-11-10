@@ -310,13 +310,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 </p>
 
             </form>
-            <details class="verification-resend" <?php echo $messageType==='error'?'open':''; ?> style="margin-top:24px">
+            <details id="verification-resend" class="verification-resend" <?php echo $messageType==='error' || isset($_GET['verification'])?'open':''; ?> style="margin-top:24px">
                 <summary>Resend verification email</summary>
                 <form method="post" class="auth-form" style="margin-top:18px">
                     <?php echo csrfField(); ?><input type="hidden" name="action" value="resend">
                     <div class="form-group"><label for="resendEmail">Registered email address</label><input type="email" id="resendEmail" name="email" value="<?php echo htmlspecialchars($email,ENT_QUOTES,'UTF-8'); ?>" maxlength="150" required autocomplete="email"></div>
                     <button type="submit" class="auth-submit">RESEND VERIFICATION EMAIL</button>
-                    <p style="font-size:.85rem;margin-top:12px">Links expire after 30 minutes. Check Spam/Junk and use the newest email.</p>
+                    <p style="font-size:.85rem;margin-top:12px">Links expire after 30 minutes. Check Spam/Junk and use the newest email. After verifying your address, <a href="forgot-password.php">return to password recovery</a>.</p>
                 </form>
             </details>
 
