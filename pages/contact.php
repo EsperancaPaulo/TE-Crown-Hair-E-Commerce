@@ -111,7 +111,7 @@ include '../includes/navbar.php';
                             <span>Phone</span>
 
                             <strong>
-                                +27 71 234 5678
+                                0764038756
                             </strong>
 
                         </div>
@@ -122,7 +122,7 @@ include '../includes/navbar.php';
                             <span>Email</span>
 
                             <strong>
-                                info@tecrownhair.co.za
+                                eduv4773053@vossie.net
                             </strong>
 
                         </div>
