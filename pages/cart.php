@@ -1,4 +1,6 @@
 <?php
+require_once '../includes/auth.php';
+$checkoutLabel = isset($_SESSION['user_id']) ? 'PROCEED TO CHECKOUT' : 'SIGN IN TO CHECK OUT';
 include '../includes/header.php';
 include '../includes/navbar.php';
 ?>
@@ -144,8 +146,9 @@ include '../includes/navbar.php';
                             href="checkout.php"
                             class="checkout-button"
                             id="checkoutButton"
+                            data-ready-label="<?php echo $checkoutLabel; ?>"
                         >
-                            PROCEED TO CHECKOUT
+                            <?php echo $checkoutLabel; ?>
                         </a>
 
 
@@ -171,7 +174,7 @@ include '../includes/navbar.php';
 
 <!-- Cart JavaScript -->
 
-<script src="../assets/js/cart.js"></script>
+<script src="../assets/js/cart.js?v=2"></script>
 
 
 <?php

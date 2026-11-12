@@ -47,3 +47,54 @@ function sendPasswordResetEmail($recipientEmail,$recipientName,$resetLink) {
     $name=htmlspecialchars($recipientName,ENT_QUOTES,'UTF-8');$url=htmlspecialchars($resetLink,ENT_QUOTES,'UTF-8');
     return sendBrevoMessage($recipientEmail,$recipientName,'Reset your TE_Crown Hair password',"<div style='font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:32px;background:#faf5ef;color:#513b2b'><h2>Reset your password</h2><p>Hello {$name},</p><p><a href='{$url}'>Choose a new password</a></p><p>If the button does not open correctly, visit <a href='{$plain}'>the password reset page</a> and paste this recovery code:</p><p style='overflow-wrap:anywhere;font-family:monospace'>{$code}</p><p>This link expires in 30 minutes and can be used once. Only the newest link works.</p><p>If you did not request this, ignore this email. Your password has not changed.</p><p>TE_Crown Hair</p></div>")['success'];
 }
+
+function sendOrderConfirmationEmail(string $email, string $name, int $orderId, array $delivery, array $items, string $amount, ?callable $transport = null): bool
+{
+    $escape = static fn($value) => htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $money = static fn($value) => 'R'.number_format((float)$value, 2);
+    $reference = '#TC'.$orderId;
+    $date = (new DateTimeImmutable('now', new DateTimeZone('Africa/Johannesburg')))->format('d M Y, H:i').' SAST';
+    $rows = '';
+    foreach ($items as $item) {
+        $options = [];
+        if ($item['colour'] !== '') {
+            $options[] = 'Colour: '.$item['colour'];
+        }
+        if ($item['length'] !== '') {
+            $options[] = 'Length: '.$item['length'].' inches';
+        }
+        $description = $escape($item['name']);
+        if ($options) {
+            $description .= '<br><small>'.$escape(implode(' / ', $options)).'</small>';
+        }
+        $quantity = (int)$item['quantity'];
+        $rows .= '<tr><td>'.$description.'</td><td>'.$quantity.'</td><td>'.$money($item['price'])
+            .'</td><td>'.$money($item['price'] * $quantity).'</td></tr>';
+    }
+    $deliveryAddress = implode('<br>', array_map($escape, [
+        $delivery['firstName'].' '.$delivery['lastName'], $delivery['address'],
+        $delivery['city'].', '.$delivery['province'].' '.$delivery['postalCode'], $delivery['phone'],
+    ]));
+    $notes = $delivery['notes'] === '' ? '' : '<p><strong>Delivery instructions</strong><br>'.nl2br($escape($delivery['notes'])).'</p>';
+    $customer = $escape($name);
+    $total = $money($amount);
+    $html = <<<HTML
+    <div style="font-family:Arial,sans-serif;max-width:640px;margin:auto;color:#3f302a">
+        <h1>Order received {$reference}</h1>
+        <p>Hello {$customer}, thank you for ordering from TE Crown Hair.</p>
+        <p><strong>Placed</strong> {$date}<br><strong>Order status</strong> Pending<br>
+        <strong>Payment</strong> Demo card, pending at the time of ordering. Test mode only, with no real charge.</p>
+        <h2>Items ordered</h2>
+        <table cellpadding="8" style="width:100%;border-collapse:collapse" border="1">
+            <thead><tr><th>Product</th><th>Quantity</th><th>Unit price</th><th>Line total</th></tr></thead>
+            <tbody>{$rows}</tbody>
+        </table>
+        <p>Subtotal {$total}<br>Delivery included (R0.00)<br><strong>Total {$total}</strong></p>
+        <h2>Delivery details</h2>
+        <p>{$deliveryAddress}</p>
+        {$notes}
+        <p>Sign in to My Account on the TE Crown Hair website to view your order and its latest status.</p>
+    </div>
+    HTML;
+    return sendBrevoMessage($email, $name, 'TE Crown Hair order confirmation '.$reference, $html, $transport)['success'];
+}

@@ -65,9 +65,28 @@ try {
   $s=$conn->prepare('INSERT INTO order_item_options(item_id,colour,length) VALUES (?,?,?)');$s->bind_param('iss',$itemId,$item['colour'],$item['length']);$s->execute();
  }
  foreach ($quantities as $id=>$qty) { $s=$conn->prepare('UPDATE products SET stock=stock-? WHERE id=?');$s->bind_param('ii',$qty,$id);$s->execute(); }
- $conn->commit(); echo json_encode(['order_id'=>$orderId]);
+ $conn->commit();
 } catch (Throwable $e) {
  try { $conn->rollback(); } catch (Throwable $ignored) {}
  http_response_code($e instanceof InvalidArgumentException || $e instanceof JsonException ? 422 : 500);
  echo json_encode(['error'=>$e instanceof InvalidArgumentException ? $e->getMessage() : 'The order could not be saved. Please retry; your cart has been kept.']);
+ exit;
 }
+
+// Send only for the first successful save, after releasing stock locks and the session.
+$recipientEmail = $_SESSION['user_email'];
+$recipientName = $_SESSION['user_name'];
+session_write_close();
+try {
+ require_once '../includes/mail.php';
+ $confirmationItems = array_map(static function (array $item) use ($products): array {
+  $product = $products[$item['id']];
+  return $item + ['name' => $product['name'], 'price' => $product['price']];
+ }, $items);
+ if (!sendOrderConfirmationEmail($recipientEmail, $recipientName, $orderId, $delivery, $confirmationItems, $amount)) {
+  error_log('Order confirmation email was not accepted for order '.$orderId);
+ }
+} catch (Throwable $exception) {
+ error_log('Order confirmation email failed for order '.$orderId);
+}
+echo json_encode(['order_id'=>$orderId]);

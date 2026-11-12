@@ -576,7 +576,7 @@ function updateCheckoutButton() {
 
 
         checkoutButton.textContent =
-            "PROCEED TO CHECKOUT";
+            checkoutButton.dataset.readyLabel || "PROCEED TO CHECKOUT";
 
 
         checkoutButton.onclick =
